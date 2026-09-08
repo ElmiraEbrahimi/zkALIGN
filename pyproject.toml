@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zkalign"
+version = "0.1.0"
+description = "Reference implementation for privacy-preserving alignment verification"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+process-mining = [
+  "pm4py==2.7.22",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
