@@ -8,20 +8,23 @@ import (
 	frMiMC "github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
 )
 
-// TraceCommitment mirrors the field-element sequence hashed in Define.
-func TraceCommitment(traceLength int, trace [MaxTrace]int, salt int) *big.Int {
-	var h hash.Hash = frMiMC.NewMiMC()
-	writeElement := func(value int) {
-		var element fr.Element
-		element.SetInt64(int64(value))
-		bytes := element.Bytes()
-		_, _ = h.Write(bytes[:])
-	}
-	writeElement(DomainTraceV1)
-	writeElement(traceLength)
+// ComputeTraceCommitment mirrors the field-element sequence hashed in Define.
+func ComputeTraceCommitment(traceLength int, trace [MaxTraceEvents]int, salt *big.Int) *big.Int {
+	values := []*big.Int{big.NewInt(DomainTraceV2), big.NewInt(int64(traceLength))}
 	for _, activity := range trace {
-		writeElement(activity)
+		values = append(values, big.NewInt(int64(activity)))
 	}
-	writeElement(salt)
-	return new(big.Int).SetBytes(h.Sum(nil))
+	values = append(values, salt)
+	return hashFieldElements(values...)
+}
+
+func hashFieldElements(values ...*big.Int) *big.Int {
+	var fieldHash hash.Hash = frMiMC.NewMiMC()
+	for _, value := range values {
+		var element fr.Element
+		element.SetBigInt(value)
+		bytes := element.Bytes()
+		_, _ = fieldHash.Write(bytes[:])
+	}
+	return new(big.Int).SetBytes(fieldHash.Sum(nil))
 }

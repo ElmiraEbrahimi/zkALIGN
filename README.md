@@ -8,26 +8,10 @@ The central design rule is:
 > Find a candidate alignment outside the ZK circuit; verify its validity,
 > completeness, cost, commitment, and threshold inside the circuit.
 
-This repository starts with a deliberately small healthcare process represented
-as a finite-state machine:
-
-```text
-Admit -> Examine -> Approve -> Treat -> Discharge
-```
-
-The private example trace is:
-
-```text
-Admit -> Examine -> EmergencyTest -> Treat -> Discharge
-```
-
-It contains one unexpected event (`EmergencyTest`) and omits `Approve`. With
-unit deviation costs, its complete alignment has cost 2.
-
-That linear example is retained only because every circuit constraint can be
-checked by hand. It is **not** the main process-mining experiment. The realistic
-pipeline uses the public Sepsis Cases hospital event log and a discovered Petri
-net with branches, loops, parallel behavior, and silent transitions.
+The implementation uses the public Sepsis Cases hospital event log and a real
+discovered Petri net with branches, loops, parallel behavior, and silent
+transitions. The former linear teaching circuit has been replaced by
+`SingleTracePetriNetCircuit`.
 
 ## What is implemented
 
@@ -37,8 +21,12 @@ net with branches, loops, parallel behavior, and silent transitions.
 - Exact-cost and threshold checks.
 - Negative tests for trace substitution, fake moves, incomplete alignments,
   incorrect cost, and threshold failure.
-- A Go/gnark circuit for the same bounded healthcare example, with a real
-  Groth16 prove/verify test.
+- A Go/gnark circuit for one real held-out Sepsis trace against the fixed real
+  27-place, 35-transition Petri net.
+- A circuit-compatible MiMC trace commitment and 32-level sparse-Merkle
+  membership check over all 1,050 committed traces.
+- A real Groth16 setup, proof generator, verifier, proof artifact, positive
+  tests, and negative tests for each security boundary.
 
 ## Quick start
 
@@ -102,6 +90,22 @@ make pre-zkp
 make test
 ```
 
+Generate and verify a proof for real held-out case `AG` (unit alignment cost 1):
+
+```bash
+make prove
+```
+
+The command reads the PM4Py witness and private commitment records, compiles
+the fixed real Petri net into the gnark constraints, generates a Groth16 proof,
+verifies it using only the proof and public witness, and writes the ignored
+proof artifact to `outputs/sepsis/proofs/single_trace.groth16`. A successful run
+ends with:
+
+```text
+PROOF VERIFIED SUCCESSFULLY: case AG has a valid, complete alignment with cost 1, which is within threshold 1.
+```
+
 ## Append-only commitment layer
 
 Each patient trace is canonically encoded using its index, case identifier,
@@ -139,28 +143,34 @@ The CLI prints the private trace, candidate alignment, commitment, calculated
 cost, and the outcome of all six checks. This is a teaching/demo mode; a real
 verifier receives only the proof and public inputs.
 
-The readable Python oracle uses SHA-256. The gnark circuit uses MiMC over BN254
-field elements because it is circuit-friendly. They intentionally share the
-same logical commitment fields but are separate prototype layers; the PM4Py
-witness adapter will emit the gnark/MiMC representation used for proofs.
+The existing auditable Python append log continues to use SHA-256. The gnark
+proof layer deterministically derives a separate MiMC commitment tree from the
+same 1,050 private trace records because MiMC is circuit-friendly. The proof
+binds the private trace to this MiMC root; production deployment must publish
+or anchor that public root alongside the existing audit checkpoint.
 
 ## Architecture
 
 ```text
-private trace + public model
+private trace + fixed real Sepsis Petri net
           |
           v
-off-circuit alignment search (Python now; PM4Py adapter later)
+off-circuit PM4Py state-equation A* alignment
           |
           v
-canonical private witness
+real PM4Py witness + MiMC event-log membership path
           |
           v
-six checks (reference verifier -> gnark circuit)
+six checks in SingleTracePetriNetCircuit
           |
           v
-proof + public commitment/model ID/policy/threshold
+Groth16 proof + public root/commitment/cost/threshold
 ```
+
+The current circuit bound is 185 trace events and 64 alignment moves. It proves
+one trace at a time. Case `AG` uses 5 events and 18 moves. Increasing the move
+bound to the dataset maximum and recursive batch aggregation are later measured
+optimization stages, not claims made by this implementation.
 
 See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for the staged
 research plan and the exact role PM4Py should play.

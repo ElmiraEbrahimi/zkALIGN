@@ -1,4 +1,4 @@
-.PHONY: setup data pre-zkp test
+.PHONY: setup data pre-zkp prove test
 
 setup:
 	python3 -m venv .venv
@@ -9,6 +9,9 @@ data:
 
 pre-zkp: data
 	.venv/bin/python scripts/healthcare_pipeline.py
+
+prove:
+	go run ./cmd/zkalign-proof -case AG -threshold 1
 
 test:
 	PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v

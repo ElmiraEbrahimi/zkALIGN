@@ -16,19 +16,16 @@ For one private patient episode, the hospital proves:
 > I know a trace and complete legal alignment bound to this public commitment;
 > the circuit-derived deviation cost is at most the auditor's public threshold.
 
-The first public model is the finite-state care pathway:
-
-```text
-Admit -> Examine -> Approve -> Treat -> Discharge
-```
-
-The demo trace replaces approval with an unexpected emergency test. It is
-artificial and contains no real patient data.
+The implemented public model is the Petri net discovered from the training
+partition of the Sepsis Cases event log: 27 places, 35 transitions and 82 arcs.
+It is fixed into the gnark constraint system. Real held-out case `AG` is the
+default end-to-end proof example.
 
 ## The six checks
 
-1. **Binding:** recompute the salted commitment over domain, length, and padded
-   activity IDs.
+1. **Binding:** recompute the salted commitment over domain, length, padded
+   activity IDs and salt, then prove membership in the public 32-level MiMC
+   event-log root.
 2. **Trace consistency:** every SYNC/LOG move consumes exactly the next private
    trace event.
 3. **Move/model legality:** every SYNC/MODEL move follows an enabled transition;
@@ -41,7 +38,7 @@ artificial and contains no real patient data.
 
 ## Stages
 
-### Stage 0 - executable specification (included now)
+### Stage 0 - executable specification (retained as a Python reference)
 
 - Tiny public finite-state healthcare model.
 - Off-circuit Dijkstra alignment generator.
@@ -51,22 +48,19 @@ artificial and contains no real patient data.
 This is the oracle for later circuit tests. It prevents debugging process logic
 and cryptographic constraints simultaneously.
 
-### Stage 1 - real gnark proof (initial fixed model included)
+### Stage 1 - real gnark proof (completed for one real trace)
 
-- Fixed capacities, e.g. 16 trace events and 24 alignment slots.
+- Fixed capacities of 185 trace events and 64 alignment slots.
 - Activity and move types encoded as integers.
-- Public finite-state model compiled into constraints.
+- Public real Sepsis Petri net compiled into constraints.
 - MiMC commitment in both Go host code and circuit.
 - Groth16 compile, setup, prove, and verify test.
 - Exact-cost and threshold-only modes.
 
-The finite-state version is the first publishable experiment because its
-transition legality rule is simple and inspectable.
+The command `make prove` performs real Groth16 setup, proving and verification
+for held-out case `AG` and writes the proof under ignored generated outputs.
 
-The included circuit fixes capacities at eight trace events and ten alignment
-moves. This is deliberately a test-scale circuit, not a scalability claim.
-
-### Stage 2 - PM4Py adapter (real-data baseline included)
+### Stage 2 - PM4Py adapter (completed for the bounded circuit)
 
 - Import CSV/XES and PNML.
 - Group events by case ID and order them canonically.
@@ -74,16 +68,14 @@ moves. This is deliberately a test-scale circuit, not a scalability claim.
 - Normalize PM4Py tuples, including silent transitions, into the witness schema.
 - Cross-check circuit-derived costs against PM4Py on every test case.
 
-The included Sepsis pipeline already performs the data split, Inductive Miner
-discovery, held-out alignment, PNML/SVG export, transition-aware move parsing,
-and pre/post marking reconstruction. The remaining Stage 2 work is to encode
-those variable-size witnesses as bounded field arrays accepted by the Petri-net
-circuit.
+The witness adapter consumes the generated activity arrays and exact transition
+indices. It deliberately ignores saved pre/post markings because the circuit
+recomputes the marking after every move.
 
 Use the public PM4Py API rather than copying student notebooks. Do not silently
 sample cases or drop timeouts in correctness experiments.
 
-### Stage 3 - bounded Petri-net circuit
+### Stage 3 - bounded Petri-net circuit (completed for alignments up to 64 moves)
 
 Represent the current marking inside the circuit. For every model-consuming
 move, prove that input places have enough tokens and apply:
@@ -92,21 +84,22 @@ move, prove that input places have enough tokens and apply:
 next_marking = marking - input_vector + output_vector
 ```
 
-This is more faithful to PM4Py models than enumerating reachable markings, but
-requires public capacity bounds and careful silent-transition tests.
+The implementation uses sparse per-place transition incidence lists generated
+from the real model. The next scalability task is increasing the alignment
+bound from 64 toward the observed maximum after measuring proving resources.
 
-### Stage 4 - committed multi-trace log (pre-ZKP layer included)
+### Stage 4 - committed log (single-trace circuit membership completed)
 
 - Commit canonically indexed trace leaves into a Merkle root.
 - Prove leaf membership for each trace.
 - Batch proofs and bind batches to disjoint complete index ranges.
 - Only claim whole-log conformance after omitted/duplicated cases are prevented.
 
-The host-side implementation now commits all source traces, prevents occupied
-leaf replacement, verifies membership and non-membership paths, hash-chains
-every append checkpoint, and creates an exact coverage manifest for all held-out
-alignments. These checks still need to be translated into circuit constraints;
-the current JSON manifest must not be trusted by a verifier on its own.
+The host-side SHA-256 append log remains the auditable storage layer. The gnark
+adapter derives a circuit-friendly MiMC commitment and sparse-Merkle path from
+the same 1,050 records, and the circuit verifies membership against a public
+MiMC root. Batch proofs, complete disjoint index-range coverage, and recursive
+aggregation remain future work.
 
 ### Stage 5 - optional extensions
 
