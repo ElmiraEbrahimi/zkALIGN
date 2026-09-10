@@ -1,6 +1,0 @@
-case_id,timestamp,activity
-patient-001,2026-01-01T09:00:00Z,Admit
-patient-001,2026-01-01T09:15:00Z,Examine
-patient-001,2026-01-01T09:35:00Z,EmergencyTest
-patient-001,2026-01-01T10:20:00Z,Treat
-patient-001,2026-01-01T13:00:00Z,Discharge

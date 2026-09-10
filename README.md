@@ -15,9 +15,8 @@ transitions. The former linear teaching circuit has been replaced by
 
 ## What is implemented
 
-- A conventional off-circuit shortest-path alignment search in Python.
-- A deterministic reference verifier for the six circuit goals.
-- Canonical reference commitments with domain separation, length, padding, and salt.
+- PM4Py state-equation A* alignment generation outside the circuit.
+- Canonical commitments with domain separation, length, padding, and salt.
 - Exact-cost and threshold checks.
 - Negative tests for trace substitution, fake moves, incomplete alignments,
   incorrect cost, and threshold failure.
@@ -30,18 +29,10 @@ transitions. The former linear teaching circuit has been replaced by
 
 ## Quick start
 
-Python 3.11+ is sufficient for the reference prototype:
+Run the Python commitment tests and Go circuit tests with:
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m zkalign.cli demo
-```
-
-The package lives in `src/`, so when running without installation use:
-
-```bash
-PYTHONPATH=src python3 -m zkalign.cli demo
-go test ./...
+make test
 ```
 
 ## Real healthcare process-mining pipeline
@@ -138,10 +129,6 @@ Core modules:
 Private trace records, salts, Merkle paths, and alignment witnesses remain under
 the ignored `outputs/` directory and must not be published as public proof
 inputs.
-
-The CLI prints the private trace, candidate alignment, commitment, calculated
-cost, and the outcome of all six checks. This is a teaching/demo mode; a real
-verifier receives only the proof and public inputs.
 
 The existing auditable Python append log continues to use SHA-256. The gnark
 proof layer deterministically derives a separate MiMC commitment tree from the

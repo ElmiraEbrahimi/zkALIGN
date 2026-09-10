@@ -24,5 +24,4 @@ python3 scripts/download_sepsis.py
 The downloaded data is intentionally ignored by Git. This repository records
 its source, version, and checksum instead of silently redistributing it.
 
-`healthcare_demo.csv` remains only as a tiny hand-checkable circuit test. It is
-not the dataset used for the realistic process-mining experiment.
+No artificial teaching dataset is used by the current circuit or proof command.

@@ -38,16 +38,6 @@ default end-to-end proof example.
 
 ## Stages
 
-### Stage 0 - executable specification (retained as a Python reference)
-
-- Tiny public finite-state healthcare model.
-- Off-circuit Dijkstra alignment generator.
-- Readable six-check reference verifier.
-- Valid and adversarial test vectors.
-
-This is the oracle for later circuit tests. It prevents debugging process logic
-and cryptographic constraints simultaneously.
-
 ### Stage 1 - real gnark proof (completed for one real trace)
 
 - Fixed capacities of 185 trace events and 64 alignment slots.
