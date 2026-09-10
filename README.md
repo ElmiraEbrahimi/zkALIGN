@@ -29,11 +29,64 @@ transitions. The former linear teaching circuit has been replaced by
 
 ## Quick start
 
-Run the Python commitment tests and Go circuit tests with:
+### First-time setup
+
+From a terminal opened in the repository:
+
+```bash
+cd "/Users/elmiraebrahimi/Documents/proccess mining-m1/zkALIGN"
+make setup
+make pre-zkp
+```
+
+`make pre-zkp` downloads and checksum-verifies the Sepsis log, discovers the
+model, aligns all held-out cases, and prepares the ignored private witness
+files. These two commands are needed only on a new checkout or when regenerating
+the experiment.
+
+### Generate and verify one real proof
+
+```bash
+make prove
+```
+
+The default invocation proves held-out case `AG` with public cost threshold 1.
+Expected important output:
+
+```text
+Preparing real Sepsis case AG (trace index 13): 5 events, 18 alignment moves.
+Compiled SingleTracePetriNetCircuit with 137925 constraints.
+PROOF VERIFIED SUCCESSFULLY: case AG has a valid, complete alignment with cost 1, which is within threshold 1.
+Proof written to outputs/sepsis/proofs/single_trace.groth16.
+```
+
+Exact timings can differ by computer. Select another case or threshold with:
+
+```bash
+go run ./cmd/zkalign-proof -case AG -threshold 1
+```
+
+The selected case must fit the current bounds of 185 trace events and 64
+alignment moves. To see an intentional threshold rejection:
+
+```bash
+go run ./cmd/zkalign-proof -case AG -threshold 0
+```
+
+Case `AG` has verified cost 1, so threshold 0 must fail. This failure is
+expected and demonstrates Goal 6.
+
+### Run every test
 
 ```bash
 make test
 ```
+
+The Python commitment tests should end with `OK`; the Go output should contain
+`ok github.com/ElmiraEbrahimi/zkALIGN/circuit`. The Go tests include one real
+Groth16 proof plus rejection tests for changed trace data, wrong Merkle paths,
+trace/alignment mismatches, illegal Petri-net transitions, incomplete
+alignments, false costs, and thresholds that are too low.
 
 ## Real healthcare process-mining pipeline
 
@@ -161,6 +214,11 @@ optimization stages, not claims made by this implementation.
 
 See [`docs/IMPLEMENTATION_PLAN.md`](docs/IMPLEMENTATION_PLAN.md) for the staged
 research plan and the exact role PM4Py should play.
+
+For a group-readable explanation of Petri-net choices, parallelism, loops,
+numeric encodings, circuit inputs, data structures, every constraint group, and
+security limitations, read
+[`docs/CIRCUIT_IMPLEMENTATION_GUIDE.md`](docs/CIRCUIT_IMPLEMENTATION_GUIDE.md).
 
 ## Important claim boundary
 
