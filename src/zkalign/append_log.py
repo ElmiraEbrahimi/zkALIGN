@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import hmac
 import json
 import os
 import struct
@@ -9,31 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
-from .sparse_merkle import SparseMerkleProof, SparseMerkleTree, sha256
+from .sparse_merkle import SparseMerkleProof, SparseMerkleTree
+from .mimc import HASH_SCHEME, mimc_bytes, trace_hash
 
-TRACE_DOMAIN = b"zkALIGN:committed-trace:v1"
-CHECKPOINT_DOMAIN = b"zkALIGN:append-checkpoint:v1"
+CHECKPOINT_DOMAIN = b"zkALIGN:append-checkpoint:v2"
 GENESIS_CHAIN_HASH = bytes(32)
-
-
-def canonical_trace_encoding(
-    index: int, case_id: str, activity_ids: list[int]
-) -> bytes:
-    case_bytes = case_id.encode("utf-8")
-    if index < 0 or len(case_bytes) > 65535:
-        raise ValueError("invalid trace index or case identifier")
-    if not activity_ids or any(not 0 < activity <= 0xFFFFFFFF for activity in activity_ids):
-        raise ValueError("a trace must contain non-zero 32-bit activity IDs")
-    return b"".join(
-        (
-            TRACE_DOMAIN,
-            struct.pack(">Q", index),
-            struct.pack(">H", len(case_bytes)),
-            case_bytes,
-            struct.pack(">I", len(activity_ids)),
-            *(struct.pack(">I", activity) for activity in activity_ids),
-        )
-    )
 
 
 def trace_commitment(
@@ -41,17 +19,13 @@ def trace_commitment(
 ) -> bytes:
     if len(salt) != 32:
         raise ValueError("trace salts must be 32 bytes")
-    return sha256(canonical_trace_encoding(index, case_id, activity_ids), salt)
-
-
-def derive_trace_salt(master_secret: bytes, index: int, case_id: str) -> bytes:
-    if len(master_secret) < 32:
-        raise ValueError("master secret must contain at least 256 bits")
-    return hmac.new(
-        master_secret,
-        TRACE_DOMAIN + struct.pack(">Q", index) + case_id.encode("utf-8"),
-        hashlib.sha256,
-    ).digest()
+    # The index is bound by the indexed Merkle leaf. Case ID and other record
+    # metadata are bound by the local checkpoint, not the alignment circuit.
+    if not 0 <= index < 2**32 or not case_id or len(case_id.encode("utf-8")) > 65535:
+        raise ValueError("invalid trace index or case identifier")
+    if not activity_ids:
+        raise ValueError("the local event-log store requires a nonempty trace")
+    return trace_hash(activity_ids, salt)
 
 
 @dataclass(frozen=True)
@@ -64,6 +38,7 @@ class TraceRecord:
 
     def to_dict(self) -> dict[str, object]:
         return {
+            "hash_scheme": HASH_SCHEME,
             "index": self.index,
             "case_id": self.case_id,
             "activity_ids": list(self.activity_ids),
@@ -73,6 +48,8 @@ class TraceRecord:
 
     @classmethod
     def from_dict(cls, raw: dict[str, object]) -> "TraceRecord":
+        if raw.get("hash_scheme") != HASH_SCHEME:
+            raise ValueError("legacy hash scheme: migrate into a new directory with scripts/migrate_mimc.py")
         return cls(
             index=int(raw["index"]),
             case_id=str(raw["case_id"]),
@@ -95,7 +72,6 @@ class AppendOnlyTraceLog:
         self.directory.mkdir(parents=True, exist_ok=True)
         self.records_path = self.directory / "private_trace_records.jsonl"
         self.checkpoints_path = self.directory / "checkpoints.jsonl"
-        self.secret_path = self.directory / "commitment_master_secret.key"
         self.public_checkpoint_path = self.directory / "public_checkpoint.json"
         self.tree = SparseMerkleTree(depth)
         self.records: list[TraceRecord] = []
@@ -118,15 +94,17 @@ class AppendOnlyTraceLog:
 
     @staticmethod
     def checkpoint_hash(
-        previous: bytes, index: int, leaf_count: int, commitment: bytes, root: bytes
+        previous: bytes, index: int, leaf_count: int, commitment: bytes, root: bytes,
+        case_id: str,
     ) -> bytes:
-        return sha256(
+        return mimc_bytes(
             CHECKPOINT_DOMAIN,
             previous,
             struct.pack(">Q", index),
             struct.pack(">Q", leaf_count),
             commitment,
             root,
+            case_id.encode("utf-8"),
         )
 
     def _load_and_verify(self) -> None:
@@ -149,10 +127,11 @@ class AppendOnlyTraceLog:
                 raise ValueError(f"trace commitment mismatch at index {record.index}")
             root = self.tree.insert(record.index, commitment)
             expected_chain = self.checkpoint_hash(
-                previous, record.index, record.index + 1, commitment, root
+                previous, record.index, record.index + 1, commitment, root, record.case_id
             )
             if (
-                int(checkpoint.get("index", -1)) != record.index
+                checkpoint.get("hash_scheme") != HASH_SCHEME
+                or int(checkpoint.get("index", -1)) != record.index
                 or int(checkpoint.get("leaf_count", -1)) != record.index + 1
                 or checkpoint.get("previous_checkpoint_hash") != previous.hex()
                 or checkpoint.get("trace_commitment") != commitment.hex()
@@ -164,20 +143,13 @@ class AppendOnlyTraceLog:
             self.checkpoints.append(checkpoint)
             previous = expected_chain
 
-    def master_secret(self) -> bytes:
-        if not self.secret_path.exists():
-            self.secret_path.write_bytes(os.urandom(32))
-            self.secret_path.chmod(0o600)
-        secret = self.secret_path.read_bytes()
-        if len(secret) != 32:
-            raise ValueError("invalid commitment master secret")
-        return secret
-
-    def append(self, case_id: str, activity_ids: list[int]) -> TraceRecord:
+    def append(self, case_id: str, activity_ids: list[int], *, salt: bytes | None = None) -> TraceRecord:
         if any(record.case_id == case_id for record in self.records):
             raise ValueError(f"case {case_id!r} was already appended")
         index = len(self.records)
-        salt = derive_trace_salt(self.master_secret(), index, case_id)
+        # Fresh independent salts avoid introducing a custom MiMC-based KDF.
+        # Explicit salts are for migration, preserving existing circuit openings.
+        salt = os.urandom(32) if salt is None else salt
         commitment = trace_commitment(index, case_id, activity_ids, salt)
         root = self.tree.insert(index, commitment)
         previous = (
@@ -186,10 +158,11 @@ class AppendOnlyTraceLog:
             else GENESIS_CHAIN_HASH
         )
         chain_hash = self.checkpoint_hash(
-            previous, index, index + 1, commitment, root
+            previous, index, index + 1, commitment, root, case_id
         )
         record = TraceRecord(index, case_id, tuple(activity_ids), salt.hex(), commitment.hex())
         checkpoint: dict[str, object] = {
+            "hash_scheme": HASH_SCHEME,
             "index": index,
             "leaf_count": index + 1,
             "previous_checkpoint_hash": previous.hex(),
@@ -229,7 +202,8 @@ class AppendOnlyTraceLog:
 
     def write_public_checkpoint(self) -> dict[str, object]:
         checkpoint = {
-            "schema": "zkalign.public-log-checkpoint.v1",
+            "schema": "zkalign.public-log-checkpoint.v2",
+            "hash_scheme": HASH_SCHEME,
             "tree_depth": self.tree.depth,
             "leaf_count": len(self.records),
             "first_index": 0 if self.records else None,

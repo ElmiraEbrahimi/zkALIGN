@@ -1,19 +1,14 @@
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 
+from .mimc import FIELD_MODULUS, hash_fields, field_from_hash, LEAF_DOMAIN, NODE_DOMAIN
+
 Hash = bytes
-LEAF_DOMAIN = b"zkALIGN:smt:leaf:v1"
-EMPTY_DOMAIN = b"zkALIGN:smt:empty:v1"
-NODE_DOMAIN = b"zkALIGN:smt:node:v1"
 
 
-def sha256(*parts: bytes) -> Hash:
-    digest = hashlib.sha256()
-    for part in parts:
-        digest.update(part)
-    return digest.digest()
+def node_hash(level: int, left: bytes, right: bytes) -> bytes:
+    return hash_fields(NODE_DOMAIN + level, field_from_hash(left), field_from_hash(right))
 
 
 @dataclass(frozen=True)
@@ -43,14 +38,14 @@ class SparseMerkleTree:
     """
 
     def __init__(self, depth: int = 32) -> None:
-        if not 1 <= depth <= 63:
-            raise ValueError("depth must be between 1 and 63")
+        if not 1 <= depth <= 32:
+            raise ValueError("depth must be between 1 and 32")
         self.depth = depth
         self.values: dict[int, Hash] = {}
         self.nodes: dict[tuple[int, int], Hash] = {}
-        self.empty: list[Hash] = [sha256(EMPTY_DOMAIN)]
-        for _ in range(depth):
-            self.empty.append(sha256(NODE_DOMAIN, self.empty[-1], self.empty[-1]))
+        self.empty: list[Hash] = [hash_fields(LEAF_DOMAIN, 0, 0)]
+        for level in range(depth):
+            self.empty.append(node_hash(level, self.empty[-1], self.empty[-1]))
 
     def _check_key(self, key: int) -> None:
         if not 0 <= key < (1 << self.depth):
@@ -60,7 +55,7 @@ class SparseMerkleTree:
     def leaf_hash(key: int, value: Hash) -> Hash:
         if len(value) != 32:
             raise ValueError("leaf value must be a 32-byte commitment")
-        return sha256(LEAF_DOMAIN, key.to_bytes(8, "big"), value)
+        return hash_fields(LEAF_DOMAIN, key, field_from_hash(value))
 
     def root(self) -> Hash:
         return self.nodes.get((self.depth, 0), self.empty[self.depth])
@@ -77,9 +72,9 @@ class SparseMerkleTree:
             sibling_position = position ^ 1
             sibling = self.nodes.get((level, sibling_position), self.empty[level])
             if position & 1:
-                current = sha256(NODE_DOMAIN, sibling, current)
+                current = node_hash(level, sibling, current)
             else:
-                current = sha256(NODE_DOMAIN, current, sibling)
+                current = node_hash(level, current, sibling)
             position >>= 1
             self.nodes[(level + 1, position)] = current
         return current
@@ -107,17 +102,17 @@ class SparseMerkleTree:
             else self.empty[0]
         )
         position = proof.key
-        for sibling_hex in proof.siblings:
+        for level, sibling_hex in enumerate(proof.siblings):
             try:
                 sibling = bytes.fromhex(sibling_hex)
             except ValueError:
                 return False
-            if len(sibling) != 32:
+            if len(sibling) != 32 or int.from_bytes(sibling, "big") >= FIELD_MODULUS:
                 return False
             if position & 1:
-                current = sha256(NODE_DOMAIN, sibling, current)
+                current = node_hash(level, sibling, current)
             else:
-                current = sha256(NODE_DOMAIN, current, sibling)
+                current = node_hash(level, current, sibling)
             position >>= 1
         return current == root
 

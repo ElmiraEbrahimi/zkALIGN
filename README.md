@@ -26,6 +26,10 @@ transitions. The former linear teaching circuit has been replaced by
   membership check over all 1,050 committed traces.
 - A real Groth16 setup, proof generator, verifier, proof artifact, positive
   tests, and negative tests for each security boundary.
+- An external population auditor that verifies separate single-trace proofs
+  against a pinned snapshot, population, key and threshold, rejects duplicate
+  counting, and reports a certified lower bound against a percentage target.
+  This does not introduce batching or recursion into the circuit.
 
 ## Quick start
 
@@ -76,6 +80,103 @@ go run ./cmd/zkalign-proof -case AG -threshold 0
 Case `AG` has verified cost 1, so threshold 0 must fail. This failure is
 expected and demonstrates Goal 6.
 
+### Certify a percentage with separate single-trace proofs
+
+The new `zkalign-audit` command fixes a population **before** proving. It uses
+one shared Groth16 setup for all proofs. The independent verifier counts only
+distinct approved commitments with valid proofs. Its denominator is always
+the full agreed population, not the number of proof files supplied.
+
+Run this small real-data demonstration from the repository root. Use a new
+output directory for each audit configuration. Existing audit artifacts are
+never silently overwritten.
+
+```bash
+go run ./cmd/zkalign-audit init \
+  -out outputs/sepsis/audit-demo \
+  -cases A,AB,AG -threshold 1 -target 95
+
+go run ./cmd/zkalign-audit prove -audit outputs/sepsis/audit-demo
+```
+
+The three demonstration cases have candidate costs 0, 0 and 1. This is an
+explicit **three-case demonstration scope**, not evidence about all 1,050
+cases. The circuit's 64-move limit remains unchanged. A missing alignment,
+capacity failure, invalid witness or candidate cost above K leaves that case
+uncertified and does not reduce the denominator. The prover reports such
+cases and continues. Re-running `prove` preserves existing proof files.
+
+The `init` command prints a domain-separated MiMC manifest fingerprint. Before accepting
+proofs, the auditor must approve the scope, authentic snapshot, model/circuit,
+setup/key and policy, then retain that fingerprint independently. Replace the
+placeholder below with **that retained fingerprint**. Do not derive the pin
+from an untrusted manifest received alongside the proofs.
+
+```bash
+go run ./cmd/zkalign-audit verify \
+  -manifest outputs/sepsis/audit-demo/manifest.json \
+  -pin YOUR_PREVIOUSLY_APPROVED_MANIFEST_MIMC \
+  -vk outputs/sepsis/audit-demo/verification.key \
+  -proofs outputs/sepsis/audit-demo/proofs \
+  -report outputs/sepsis/audit-demo/verified-report.json
+```
+
+Expected result for the demonstration is:
+
+```text
+CERTIFIED: 3/3 agreed traces (100.00%). Required: 3 for target 95% at K=1.
+UNCERTIFIED: 0. Missing/invalid proofs do not establish nonconformance.
+AUDIT TARGET MET: at least 95% of the agreed traces admit a valid, complete alignment with cost <= 1.
+```
+
+The verifier reads only the manifest, verification key and proof bundles. It
+can run in a separate directory or machine without event logs, alignments,
+salts or the proving key. It verifies every bundle against the same approved
+root, threshold and key. Copying a proof file does not increase the numerator.
+Invalid files are recorded in the report but cannot certify a case. An invalid
+attempt does not prevent a later valid proof from certifying the same case.
+For 100 agreed cases, 95 distinct valid proofs suffice for the 95% lower-bound
+claim. The decision uses exact integer arithmetic, not the rounded percentage
+printed on the console. Exit status is 0 when the target is established, 2
+when it is not established, and 1 for configuration or I/O errors. When using
+`go run`, Go may wrap the program's nonzero exit status. Use a compiled binary
+if another program needs to distinguish exit statuses.
+
+Omit `-cases` during `init` to fix **all stored cases** as the population.
+Do not do this expecting the current saved witnesses to cover all 1,050 cases
+because the pipeline aligns only the 210 held-out cases. The remaining cases
+will be uncertified. To audit a larger agreed scope, first prepare its candidate
+alignments without silently excluding difficult cases. The existing move bound
+can also prevent certification. None of these failures proves nonconformance.
+
+Audit artifacts are generated under ignored `outputs/`:
+
+| Artifact | Purpose | Share with auditor? |
+| --- | --- | --- |
+| `manifest.json` | Agreed root, K, target, key fingerprint and population commitments/indices | Yes, for approval |
+| `manifest.mimc` | Convenience copy of the proposed MiMC fingerprint | Not a substitute for an independently retained pin |
+| `verification.key` | Shared, approved Groth16 verification key | Yes |
+| `proving.key` | Shared proving material | Not needed by the auditor |
+| `proofs/trace-INDEX.json` | One proof, public commitment, exact cost and manifest fingerprint | Yes |
+| `verified-report.json` | Verifier's counts, case indices and per-file decisions | Auditor output |
+
+Public indices, commitments and exact costs are linkable audit metadata. No
+patient identifiers, trace activities, salts or alignment arrays are written
+to these public bundles. A verifier must trust the approved roster to associate
+each commitment with a distinct intended real-world case. The circuit proves
+membership of the commitment, not authenticity of a patient record or the
+external roster. Root publication and approval remain organizational steps,
+and the local Groth16 setup is not a multiparty ceremony. Do not trust a setup
+performed solely by a potentially malicious prover. The Python append store
+and the circuit now use the same MiMC trace commitments and Merkle root. The
+local checkpoint chain is also MiMC, but append-only evolution and event
+authenticity are still not proven by the single-trace circuit.
+
+The result is an externally verified **lower bound**, not one aggregate ZK
+proof, exact optimal fitness, a whole-log completeness proof, or proof that
+uncertified cases violate the threshold. No batching or recursion is used.
+Implementation is in `circuit/audit.go` and `cmd/zkalign-audit/main.go`.
+
 ### Run every test
 
 ```bash
@@ -83,10 +184,12 @@ make test
 ```
 
 The Python commitment tests should end with `OK`; the Go output should contain
-`ok github.com/ElmiraEbrahimi/zkALIGN/circuit`. The Go tests include one real
-Groth16 proof plus rejection tests for changed trace data, wrong Merkle paths,
+`ok github.com/ElmiraEbrahimi/zkALIGN/circuit`. The Go tests include real
+Groth16 proofs plus rejection tests for changed trace data, wrong Merkle paths,
 trace/alignment mismatches, illegal Petri-net transitions, incomplete
-alignments, false costs, and thresholds that are too low.
+alignments, false costs, and thresholds that are too low. Audit tests also cover
+proof serialization, missing cases, duplicates, wrong roots/thresholds/keys,
+changed manifests, unexpected commitments and exact percentage boundaries.
 
 ## Real healthcare process-mining pipeline
 
@@ -183,9 +286,9 @@ Private trace records, salts, Merkle paths, and alignment witnesses remain under
 the ignored `outputs/` directory and must not be published as public proof
 inputs.
 
-The existing auditable Python append log continues to use SHA-256. The gnark
-proof layer deterministically derives a separate MiMC commitment tree from the
-same 1,050 private trace records because MiMC is circuit-friendly. The proof
+The Python append log and gnark proof layer use identical BN254 MiMC trace
+commitments, indexed leaves, level-separated internal nodes and empty nodes.
+They derive the same root from the same 1,050 private trace records. The proof
 binds the private trace to this MiMC root; production deployment must publish
 or anchor that public root alongside the existing audit checkpoint.
 
@@ -219,6 +322,49 @@ For a group-readable explanation of Petri-net choices, parallelism, loops,
 numeric encodings, circuit inputs, data structures, every constraint group, and
 security limitations, read
 [`docs/CIRCUIT_IMPLEMENTATION_GUIDE.md`](docs/CIRCUIT_IMPLEMENTATION_GUIDE.md).
+
+## MiMC hash format and legacy migration
+
+All application-level hashing uses BN254 MiMC matching gnark-crypto v0.21.0.
+This includes trace commitments, Merkle nodes, append checkpoints, manifest
+and verification-key fingerprints, dataset checksums and model-file checksums.
+`hashing/mimc.go` and `src/zkalign/mimc.py` define the matching encodings.
+Python's fixed round constants are checked against the pinned Go library.
+The Python tree root is hexadecimal while the audit manifest's root is decimal
+because gnark uses field values. These are different representations of the
+same number, not different roots.
+
+Arbitrary byte strings use domain-separated, length-prefixed parts and 31-byte
+chunks. This avoids lossy reduction of file bytes modulo the field. Trace
+encoding remains the circuit's domain, length, 185 padded activity IDs and
+salt reduced into the field. New traces use independent OS-random 32-byte salts
+instead of the previous hash-based salt derivation. The local checkpoint also
+binds the case ID, which is not part of the circuit's trace payload.
+
+This is a versioned migration. Old SHA-based checkpoints and audit manifests
+are rejected, not silently treated as MiMC. To rebuild a trusted legacy export
+without recomputing alignments or deleting its original files:
+
+```bash
+.venv/bin/python scripts/migrate_mimc.py \
+  --source outputs/sepsis \
+  --destination outputs/sepsis-mimc \
+  --dataset 'datasets/raw/Sepsis Cases - Event Log.xes.gz'
+```
+
+The destination must not exist. Migration preserves trace indices, activities,
+salts and candidate alignments and cross-checks **every commitment and the root**
+against Go. It does not authenticate the legacy input or validate its old hash
+chain. Obtain that source from a trusted snapshot. Old proof packages and audit
+manifests are not copied. Create and approve a fresh MiMC audit using `init` and
+pass the migrated `-records` path, then use `prove` with both migrated `-records`
+and `-witnesses` paths. Once independently checked, the migrated directory can
+replace the working export while retaining the old directory as a backup.
+
+Third-party cryptographic internals are not rewritten. In particular, gnark's
+MiMC parameter derivation and proof-system internals retain their standard
+library implementations. “MiMC-only” here describes zkALIGN's application
+hashes, not every primitive used internally by its dependencies or TLS.
 
 ## Important claim boundary
 

@@ -85,11 +85,12 @@ bound from 64 toward the observed maximum after measuring proving resources.
 - Batch proofs and bind batches to disjoint complete index ranges.
 - Only claim whole-log conformance after omitted/duplicated cases are prevented.
 
-The host-side SHA-256 append log remains the auditable storage layer. The gnark
-adapter derives a circuit-friendly MiMC commitment and sparse-Merkle path from
-the same 1,050 records, and the circuit verifies membership against a public
-MiMC root. Batch proofs, complete disjoint index-range coverage, and recursive
-aggregation remain future work.
+The host-side append log and gnark adapter now use the same BN254 MiMC trace
+encoding and sparse-Merkle root over the same records. Local checkpoints,
+file fingerprints and audit fingerprints also use MiMC. The external audit
+program counts distinct certified members of an independently approved roster.
+The circuit still does not prove append-only history or event authenticity.
+Batch proofs and recursive aggregation remain future work.
 
 ### Stage 5 - optional extensions
 

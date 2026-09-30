@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import random
 from collections import Counter
@@ -12,6 +11,7 @@ import pandas as pd
 import pm4py
 
 from zkalign.append_log import AppendOnlyTraceLog
+from zkalign.mimc import HASH_SCHEME, file_mimc
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LOG = ROOT / "datasets" / "raw" / "Sepsis Cases - Event Log.xes.gz"
@@ -34,14 +34,6 @@ def split_by_case(
     train = dataframe[dataframe[CASE_ID].astype(str).isin(train_ids)].copy()
     test = dataframe[~dataframe[CASE_ID].astype(str).isin(train_ids)].copy()
     return train, test
-
-
-def file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def unpack_alignment_move(value: Any) -> tuple[Any, Any, Any]:
@@ -287,7 +279,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         move_counts.update(move["type"] for move in moves)
         witnesses.append(
             {
-                "schema": "zkalign.pm4py-witness.v1",
+                "schema": "zkalign.pm4py-witness.v2",
+                "hash_scheme": HASH_SCHEME,
                 "case_id": case,
                 "private_trace": activities,
                 "private_trace_activity_ids": [activity_encoding[item] for item in activities],
@@ -376,8 +369,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "held_out_coverage_complete": coverage["complete_held_out_coverage"],
             "held_out_indices_unique": coverage["no_duplicate_aligned_indices"],
         },
-        "source_log_sha256": file_sha256(args.log),
-        "model_pnml_sha256": file_sha256(args.output / "sepsis_model.pnml"),
+        "hash_scheme": HASH_SCHEME,
+        "source_log_mimc": file_mimc(args.log),
+        "model_pnml_mimc": file_mimc(args.output / "sepsis_model.pnml"),
         "split_seed": args.seed,
         "train_fraction": args.train_fraction,
         "noise_threshold": args.noise_threshold,

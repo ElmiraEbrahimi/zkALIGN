@@ -6,30 +6,31 @@ import unittest
 from pathlib import Path
 
 from zkalign.append_log import AppendOnlyTraceLog
-from zkalign.sparse_merkle import SparseMerkleTree, sha256
+from zkalign.sparse_merkle import SparseMerkleTree
+from zkalign.mimc import mimc_bytes
 
 
 class SparseMerkleTreeTests(unittest.TestCase):
     def test_membership_and_non_membership(self):
         tree = SparseMerkleTree(depth=8)
-        value = sha256(b"trace-commitment")
+        value = mimc_bytes(b"trace-commitment")
         tree.insert(7, value)
         self.assertTrue(tree.verify(value, tree.proof(7), tree.root()))
         self.assertTrue(tree.verify(None, tree.proof(8), tree.root()))
 
     def test_wrong_value_and_wrong_root_are_rejected(self):
         tree = SparseMerkleTree(depth=8)
-        value = sha256(b"trace-commitment")
+        value = mimc_bytes(b"trace-commitment")
         tree.insert(7, value)
         proof = tree.proof(7)
-        self.assertFalse(tree.verify(sha256(b"changed"), proof, tree.root()))
-        self.assertFalse(tree.verify(value, proof, sha256(b"wrong-root")))
+        self.assertFalse(tree.verify(mimc_bytes(b"changed"), proof, tree.root()))
+        self.assertFalse(tree.verify(value, proof, mimc_bytes(b"wrong-root")))
 
     def test_existing_leaf_cannot_be_overwritten(self):
         tree = SparseMerkleTree(depth=8)
-        tree.insert(1, sha256(b"first"))
+        tree.insert(1, mimc_bytes(b"first"))
         with self.assertRaises(ValueError):
-            tree.insert(1, sha256(b"replacement"))
+            tree.insert(1, mimc_bytes(b"replacement"))
 
 
 class AppendOnlyTraceLogTests(unittest.TestCase):

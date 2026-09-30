@@ -197,7 +197,7 @@ costs are integers represented as BN254 field elements.
 ## Important files
 
 - `scripts/healthcare_pipeline.py`: real data split, model discovery, A*
-  alignment, witness export, and SHA-256 audit commitment log.
+  alignment, witness export, and MiMC audit commitment log.
 - `scripts/generate_gnark_model.py`: converts the exported model into sparse Go
   constants.
 - `circuit/sepsis_model_gen.go`: generated fixed real Petri-net constants.
@@ -234,9 +234,11 @@ That command must fail because the verified cost is one. Run all tests with
 
 - The proof establishes existence of a valid complete alignment with the
   verified cost. It does not prove that PM4Py's alignment is globally optimal.
-- The SHA-256 append-only audit tree and circuit-friendly MiMC tree are separate
-  representations derived from the same private trace records. A production
-  deployment must publish or anchor the MiMC root used by the verifier.
+- The append-only audit tree and circuit use the same MiMC trace encoding,
+  indexed leaf and level-separated node rules. Python/Go compatibility tests
+  verify their roots match. A deployment must independently approve the MiMC
+  root and roster. Membership does not prove append-only evolution or real-world
+  event authenticity. Legacy hash artifacts require explicit migration.
 - Groth16 keys are tied to the exact circuit bounds and fixed model.
 - The current command performs a fresh trusted setup for demonstration. A
   deployment must manage and distribute setup artifacts appropriately.

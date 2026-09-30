@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-import hashlib
+import sys
 import subprocess
 import urllib.request
 from pathlib import Path
 
 URL = "https://ndownloader.figshare.com/files/24061976"
-EXPECTED_MD5 = "b5671166ac71eb20680d3c74616c43d2"
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+from zkalign.mimc import file_mimc
+
+# Project-local MiMC pin of the publisher-checksummed dataset, not a checksum
+# claimed to have been published by 4TU. Provenance is documented in datasets/.
+EXPECTED_MIMC = "2609148250783286284f49dc67220f63465834e094537a61537001312044c01f"
 DESTINATION = ROOT / "datasets" / "raw" / "Sepsis Cases - Event Log.xes.gz"
-
-
-def md5(path: Path) -> str:
-    digest = hashlib.md5()  # nosec B324 - required only for published file verification
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
 
 
 def main() -> int:
@@ -35,12 +32,12 @@ def main() -> int:
                 ["curl", "--fail", "--location", "--output", str(DESTINATION), URL],
                 check=True,
             )
-    actual = md5(DESTINATION)
-    if actual != EXPECTED_MD5:
+    actual = file_mimc(DESTINATION)
+    if actual != EXPECTED_MIMC:
         raise RuntimeError(
-            f"checksum mismatch for {DESTINATION}: expected {EXPECTED_MD5}, got {actual}"
+            f"checksum mismatch for {DESTINATION}: expected {EXPECTED_MIMC}, got {actual}"
         )
-    print(f"Verified {DESTINATION.name}: MD5 {actual}")
+    print(f"Verified {DESTINATION.name}: MiMC {actual}")
     return 0
 
 

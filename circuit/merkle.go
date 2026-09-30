@@ -6,9 +6,12 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+
+	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
 )
 
 type privateTraceRecord struct {
+	HashScheme  string `json:"hash_scheme"`
 	Index       uint32 `json:"index"`
 	CaseID      string `json:"case_id"`
 	ActivityIDs []int  `json:"activity_ids"`
@@ -36,6 +39,9 @@ func loadCircuitMerkleProof(recordsPath string, targetIndex uint32) (circuitMerk
 		var record privateTraceRecord
 		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
 			return circuitMerkleProof{}, fmt.Errorf("decode private trace record line %d: %w", lineNumber, err)
+		}
+		if record.HashScheme != hashing.Scheme {
+			return circuitMerkleProof{}, fmt.Errorf("legacy records require explicit MiMC migration")
 		}
 		if len(record.ActivityIDs) > MaxTraceEvents {
 			return circuitMerkleProof{}, fmt.Errorf("case %s has %d events; commitment maximum is %d", record.CaseID, len(record.ActivityIDs), MaxTraceEvents)
