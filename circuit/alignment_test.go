@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/consensys/gnark-crypto/ecc"
+	"github.com/consensys/gnark-crypto/ecc/bn254/fr"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
@@ -82,7 +83,19 @@ func TestRealSepsisGroth16ProofVerifies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := VerifyGroth16Proof(proof, verifyingKey, publicWitness); err != nil {
+	if len(publicWitness.Vector().(fr.Vector)) != 3 {
+		t.Fatal("public witness must contain only commitment, root and threshold")
+	}
+	// Reconstruct the verifier input without the private alignment or cost.
+	independentPublic, err := frontend.NewWitness(&SingleTracePetriNetCircuit{
+		TraceCommitment: assignment.TraceCommitment,
+		EventLogRoot:    assignment.EventLogRoot,
+		CostThreshold:   assignment.CostThreshold,
+	}, ecc.BN254.ScalarField(), frontend.PublicOnly())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyGroth16Proof(proof, verifyingKey, independentPublic); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -94,11 +107,52 @@ func TestCostAboveThresholdIsRejected(t *testing.T) {
 	}
 }
 
-func TestFalsePublicCostIsRejected(t *testing.T) {
+func TestFalsePrivateCostIsRejected(t *testing.T) {
 	assignment := realCaseAssignment(t, 1)
 	assignment.AlignmentCost = 0
 	if err := test.IsSolved(&SingleTracePetriNetCircuit{}, assignment, ecc.BN254.ScalarField()); err == nil {
-		t.Fatal("expected false public cost to be rejected")
+		t.Fatal("expected false private cost to be rejected")
+	}
+}
+
+func TestExactCostIsNotInPublicWitness(t *testing.T) {
+	a := realCaseAssignment(t, 2)
+	full, err := frontend.NewWitness(a, ecc.BN254.ScalarField())
+	if err != nil {
+		t.Fatal(err)
+	}
+	public, err := full.Public()
+	if err != nil {
+		t.Fatal(err)
+	}
+	values := public.Vector().(fr.Vector)
+	if len(values) != 3 {
+		t.Fatalf("got %d public fields, want 3", len(values))
+	}
+	for i, want := range []*big.Int{a.TraceCommitment.(*big.Int), a.EventLogRoot.(*big.Int), big.NewInt(2)} {
+		var got big.Int
+		values[i].BigInt(&got)
+		if got.Cmp(want) != 0 {
+			t.Fatalf("unexpected public field %d", i)
+		}
+	}
+	before, err := public.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Merely extracting public fields must not depend on the private cost.
+	// This deliberately invalid cost is rejected by the circuit in another test.
+	a.AlignmentCost = 7
+	after, err := frontend.NewWitness(a, ecc.BN254.ScalarField(), frontend.PublicOnly())
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterBytes, err := after.MarshalBinary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(before) != string(afterBytes) {
+		t.Fatal("private cost changed public witness")
 	}
 }
 

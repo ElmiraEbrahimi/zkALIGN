@@ -45,7 +45,8 @@ default end-to-end proof example.
 - Public real Sepsis Petri net compiled into constraints.
 - MiMC commitment in both Go host code and circuit.
 - Groth16 compile, setup, prove, and verify test.
-- Exact-cost and threshold-only modes.
+- Threshold-only disclosure with privately checked exact cost; only the
+  trace commitment, log root and threshold are public circuit inputs.
 
 The command `make prove` performs real Groth16 setup, proving and verification
 for held-out case `AG` and writes the proof under ignored generated outputs.

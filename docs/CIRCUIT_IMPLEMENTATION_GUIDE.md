@@ -156,12 +156,12 @@ Public inputs, visible to the verifier:
 TraceCommitment  salted commitment to the private padded trace
 EventLogRoot     MiMC sparse-Merkle root for all 1,050 committed traces
 CostThreshold    maximum cost accepted by the verifier
-AlignmentCost    cost that the circuit must independently reproduce
 ```
 
 Private witness values:
 
 ```text
+AlignmentCost  exact cost that the circuit independently recomputes
 TraceLength, TraceEvents[185], TraceSalt, TraceIndex, MerklePath[32]
 AlignmentLength, move types[64], activities[64], transition IDs[64]
 ```
@@ -170,6 +170,13 @@ Arrays have fixed circuit bounds. Real values occupy a prefix, followed by
 canonical zero padding. The current 64-move alignment bound includes the real
 default case `AG` but does not include every held-out case; increasing and
 benchmarking this bound is future scalability work.
+
+Only the commitment, root, and threshold are public. The audit verifier does
+not receive the exact cost, and public proof bundles must not contain it.
+The circuit still checks the private claimed cost against its calculated sum
+and proves that sum is at most K. Keys and proofs from the previous public-cost
+circuit must be regenerated; audit v3 rejects legacy v2 manifests. Previously
+published costs cannot be retracted by this update.
 
 ## The six circuit checks
 

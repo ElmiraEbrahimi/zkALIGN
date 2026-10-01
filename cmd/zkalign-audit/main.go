@@ -211,7 +211,7 @@ func prove(args []string) error {
 			err = fmt.Errorf("alignment witness does not match agreed trace")
 		}
 		if err == nil && summary.AlignmentCost > manifest.Threshold {
-			err = fmt.Errorf("candidate cost %d exceeds K=%d; this does not prove that no cheaper alignment exists", summary.AlignmentCost, manifest.Threshold)
+			err = fmt.Errorf("candidate cost exceeds K=%d; this does not prove that no cheaper alignment exists", manifest.Threshold)
 		}
 		if err != nil {
 			unresolved++
@@ -231,7 +231,7 @@ func prove(args []string) error {
 		if err != nil {
 			return err
 		}
-		bundleBytes, err := marshal(circuit.AuditProofBundle{ManifestMiMC: digest, Commitment: entry.Commitment, Cost: summary.AlignmentCost, Proof: proofBytes})
+		bundleBytes, err := marshal(circuit.AuditProofBundle{ManifestMiMC: digest, Commitment: entry.Commitment, Proof: proofBytes})
 		if err != nil {
 			return err
 		}
@@ -239,7 +239,7 @@ func prove(args []string) error {
 			return err
 		}
 		generated++
-		fmt.Printf("Proof generated and locally verified for index %d, cost %d <= %d.\n", entry.Index, summary.AlignmentCost, manifest.Threshold)
+		fmt.Printf("Proof generated and locally verified for index %d: cost <= %d (exact cost private).\n", entry.Index, manifest.Threshold)
 	}
 	fmt.Printf("Generated %d separate proofs; %d unresolved this run. The agreed denominator remains %d. Run the independent verify command.\n", generated, unresolved, len(manifest.Cases))
 	return nil

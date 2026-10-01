@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"io"
 	"math/big"
 	"os"
 
@@ -17,7 +18,9 @@ import (
 	"github.com/consensys/gnark/frontend"
 )
 
-const AuditVersion = "zkalign-single-trace-audit-v2-mimc"
+// v3 removes the exact cost from the public witness and proof bundle. Keys
+// and proofs from v2 must be regenerated, not reused with this statement.
+const AuditVersion = "zkalign-single-trace-audit-v3-mimc-private-cost"
 
 // AuditCase is an agreed population member. Indices and commitments are public;
 // patient identifiers, activities, salts and alignments are not included.
@@ -35,12 +38,11 @@ type AuditManifest struct {
 	Cases               []AuditCase `json:"cases"`
 }
 
-// A bundle contains only a single proof and its public cost/commitment. Root,
+// A bundle contains only a single proof and its public commitment. Root,
 // threshold and verification key come from the pinned manifest, not the bundle.
 type AuditProofBundle struct {
 	ManifestMiMC string `json:"manifest_mimc"`
 	Commitment   string `json:"commitment"`
-	Cost         int    `json:"cost"`
 	Proof        []byte `json:"proof"`
 }
 
@@ -159,7 +161,17 @@ func NewAuditVerifier(manifestBytes []byte, approvedDigest string, vkBytes []byt
 func (v *AuditVerifier) Check(name string, data []byte) {
 	receipt := AuditReceipt{File: name, Status: "invalid"}
 	var bundle AuditProofBundle
-	err := json.Unmarshal(data, &bundle)
+	// Reject legacy cost-bearing bundles and other unexpected public fields.
+	// This also prevents accidental exact-cost disclosure in accepted packages.
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&bundle)
+	if err == nil {
+		var extra any
+		if trailing := decoder.Decode(&extra); trailing != io.EOF {
+			err = fmt.Errorf("proof bundle must contain exactly one JSON object")
+		}
+	}
 	if err == nil {
 		err = v.verifyBundle(bundle)
 	}
@@ -182,14 +194,11 @@ func (v *AuditVerifier) verifyBundle(bundle AuditProofBundle) error {
 	if !v.expected[bundle.Commitment] {
 		return fmt.Errorf("commitment is not in the agreed population")
 	}
-	if bundle.Cost < 0 || bundle.Cost > MaxAlignmentMoves || bundle.Cost > v.manifest.Threshold {
-		return fmt.Errorf("claimed cost is outside the permitted range")
-	}
 	commitment, _ := canonicalField(bundle.Commitment)
 	root, _ := canonicalField(v.manifest.Root)
 	public, err := frontend.NewWitness(&SingleTracePetriNetCircuit{
 		TraceCommitment: commitment, EventLogRoot: root,
-		CostThreshold: v.manifest.Threshold, AlignmentCost: bundle.Cost,
+		CostThreshold: v.manifest.Threshold,
 	}, ecc.BN254.ScalarField(), frontend.PublicOnly())
 	if err != nil {
 		return err

@@ -1,0 +1,317 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[margin=18mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlist{nosep,leftmargin=*,topsep=3pt}
+\setlength{\emergencystretch}{2em}
+\newcommand{\file}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\must}[1]{\textbf{#1}}
+\begin{document}
+\begin{center}
+{\LARGE\bfseries zkALIGN Implementation Brief}\\[4pt]
+{\large Build contract for the implementation team}\\[3pt]
+Single-trace proofs with external population accounting\quad |\quad 1 October 2026
+\end{center}
+
+\section*{1. What the team must build}
+\must{Deliver this statement, not an alignment-search proof.}
+For one private trace belonging to an approved log snapshot, prove that a supplied alignment consumes the whole trace, follows the agreed Petri net, reaches its final marking, has correctly calculated private cost $c$, and satisfies $c\leq K$. The auditor must verify this without receiving the trace, alignment, or exact cost. Only $C$, $R$, and $K$ are public circuit inputs.
+
+\begin{tabularx}{\textwidth}{@{}>{\bfseries}p{.17\textwidth}X@{}}
+\toprule
+In scope & One fixed public Petri net per compiled circuit. One private trace and one alignment per proof. The six checks in Section~3. Trace commitments, sparse Merkle membership, a local append-only trace store, and external counting of distinct certified cases.\\
+Out of scope & Batching multiple alignments inside one proof, recursive proofs, multiple models in one circuit, a private model, proving optimality, and searching for an alignment inside the circuit. No clinical decision-making or proof of event authenticity.\\
+Technology & Python/PM4Py for preparation and alignment search. Go/gnark with Groth16 over BN254 for proving and verification. Use MiMC for application commitments, trees, checkpoints, and fingerprints, with identical encodings across languages.\\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Build in this order}
+\begin{enumerate}
+
+\item \must{Choose one model that every trace will be checked against.}
+Use the agreed Petri net and give each activity, transition, and place a fixed numeric identifier. Store each transition's label, the places it takes tokens from, and the places it puts tokens into. Also store the starting and required final token positions. These tables become constants in the circuit. The model stays the same throughout the audit.
+
+\item \must{Record the traces and create a commitment for each one.}
+For each case, put its events in order and replace activity names with their numeric identifiers. Hash the encoded trace, its length, and a private random salt to obtain its commitment. Put these commitments at distinct positions in the sparse Merkle tree and retain the information needed to prove membership. The tree root identifies the log snapshot used for this audit. New records may be appended later, but they do not change the snapshot already approved for this audit.
+
+\item \must{Agree what the auditor will check before submitting proofs.}
+Fix the list of included case commitments, the snapshot root, the maximum allowed alignment cost $K$, and the target percentage, such as 95\%. Approve the verification key belonging to the chosen circuit and model. Save these settings in an audit manifest. The auditor keeps an independently approved fingerprint of this manifest so the prover cannot later replace the case list, model-specific key, or threshold with more favourable settings.
+
+\item \must{Find an alignment for each trace outside the circuit.}
+Give PM4Py state-equation A* one trace and the fixed Petri net. It returns a candidate alignment. Convert that alignment into rows containing the move type, consumed activity ID, and model transition ID, including silent transitions. Pad the arrays with zeros as specified in Section~2. Calculate our unit cost from the moves: log and visible model moves cost one; synchronous and silent model moves cost zero. Do not directly copy PM4Py's internal search-cost number.
+
+\item \must{Prove that each supplied alignment passes the six checks.}
+Give the circuit one trace, its salt and Merkle path, and its alignment as private inputs. The circuit checks membership, trace consistency, legal model execution, completeness, cost, and the threshold, as specified in Section~3. Generate one proof and send only the proof and public audit information to the auditor. The auditor checks it using the approved verification key. Keep traces, salts, alignments, and the exact cost private. A case that cannot produce an accepted proof remains uncertified.
+
+\item \must{Calculate the certified percentage outside the circuit.}
+The auditor counts how many distinct cases from the original agreed list have accepted proofs. Divide this count by the size of that original list, not by the number of submitted proofs. For 100 agreed cases, 95 distinct accepted proofs establish at least 95\%. Repeating a proof adds nothing, and missing cases remain in the total. Processing many separate proofs in a loop is allowed; it is not batching multiple traces into one proof.
+
+\end{enumerate}
+
+\subsection*{Current reference experiment and its limits}
+The Sepsis experiment contains 1,050 traces. It uses 840 training traces for model discovery and generates alignments for 210 held-out traces. All 1,050 are committed, but this does not mean proofs exist for all of them. The discovered model is a benchmark model, not an approved clinical guideline.
+
+The present configuration has 27 places, 35 transitions (21 silent), and 16 activity IDs. Capacities are 185 trace events, 64 alignment moves, and 32 Merkle levels. \must{The 64-move limit is also an effective limit on consumable trace length.} Never truncate a trace or silently remove an oversized case from the audit denominator. Changing capacities or the model requires recompilation and corresponding keys.
+
+\clearpage
+\section*{2. Data contract and model representation}
+\must{Keep these three ID spaces separate.} Activities are labels $1..16$. Transition IDs are $1..35$ and select particular firings. Place indices are $0..26$ and identify marking coordinates. Zero means padding or an absent field in witness arrays, and a silent label in the model table. Transition array offsets in generated Go code are zero-based, so offset $=\mathrm{ID}-1$.
+
+\begin{tabularx}{\textwidth}{
+    @{}p{.17\textwidth}p{.19\textwidth}X@{}
+}
+\toprule
+Visibility & Field & Meaning\\
+\midrule
+
+Public per proof
+& $C$
+& Commitment to the private trace being checked.\\
+
+& $R$
+& Merkle root identifying the approved log snapshot.\\
+
+& $K$
+& Maximum alignment cost allowed by the auditor.\\
+
+\midrule
+
+Private witness
+& $c$
+& Private claimed alignment cost. The circuit recalculates
+the cost from the moves, checks equality with $c$,
+and enforces $c\leq K$.\\
+
+& $A[185]$
+& Array containing the trace's activity IDs in order,
+followed by zeros in unused positions.\\
+
+& $n$
+& Number of actual events in the trace, excluding padding.\\
+
+& $r$
+& Private random salt included when hashing the trace
+to create its commitment.\\
+
+& $i$
+& Position of this trace's commitment in the Merkle tree.\\
+
+& $\omega[32]$
+& The 32 sibling hashes needed to check that the
+commitment belongs to root $R$.\\
+
+& $U[64]$
+& Move type at each alignment position:
+PAD, SYNC, LOG, or MODEL.\\
+
+& $V[64]$
+& Activity ID consumed at each alignment position.
+Zero for MODEL and PAD moves.\\
+
+& $J[64]$
+& Model transition ID selected at each alignment position.
+Zero for LOG and PAD moves.\\
+
+& $L$
+& Number of actual alignment moves, excluding padding.\\
+
+\midrule
+
+Fixed configuration
+& $\mathrm{Pre}(p,t)$
+& Input connection: 1 if transition $t$ takes a token
+from place $p$ when it fires, otherwise 0.\\
+
+& $\mathrm{Post}(p,t)$
+& Output connection: 1 if transition $t$ puts a token
+into place $p$ when it fires, otherwise 0.\\
+
+& $\lambda(t)$
+& Activity ID associated with transition $t$.
+Zero means a silent transition.\\
+
+& $m_0[p]$
+& Token count at place $p$ before execution starts:
+0 or 1.\\
+
+& $m_f[p]$
+& Required token count at place $p$ when execution
+finishes. Every place must match its required value.\\
+
+& Activity dictionary
+& Fixed mapping from activity names to numeric IDs.\\
+
+& Cost policy
+& SYNC and silent MODEL moves cost 0.
+LOG and visible MODEL moves cost 1.\\
+
+& Capacities
+& Maximum 185 trace events, 64 alignment moves,
+and 32 Merkle-tree levels.\\
+
+& Hash domains
+& Fixed numeric tags included in hashes to distinguish
+trace commitments, tree leaves, and internal nodes.\\
+
+\bottomrule
+\end{tabularx}
+
+\smallskip
+Here, $p$ identifies a place and $t$ identifies a transition.
+$\mathrm{Pre}$ and $\mathrm{Post}$ describe the model's fixed
+connections, not its current tokens. The current token
+counts are stored in the marking vector $m$.
+
+\subsection*{Represent the Petri net by token vectors}
+Keep $m[p]\in\{0,1\}$ for every place. A marking is \emph{not} a single state ID and is not a one-hot vector. Several places can hold tokens simultaneously. For transition $t$, require every input token and calculate
+\[
+\mathrm{Pre}(p,t)\leq m[p],\qquad
+m'[p]=m[p]-\mathrm{Pre}(p,t)+\mathrm{Post}(p,t),\qquad m'[p]\in\{0,1\}.
+\]
+The exported model uses input/output vectors. The current circuit implements these using sparse per-place lists of incident transitions and equality selectors on the private transition ID. Select one transition for SYNC/MODEL and none for LOG/PAD. Reconstruct markings inside the circuit, not from trusted witness-provided markings.
+
+\must{Choice} is competition for an input token. \must{Parallelism} is several marked places after a split, with a join requiring its input tokens. \must{Loops} are repeated legal firings within the move capacity. No deterministic automaton or enumeration of all possible runs is needed. For example, actual transition $t_{34}$ consumes $p_{26}$ and produces $p_0,p_2,p_6,p_8,p_{23}$.
+
+\subsection*{Encode each alignment row}
+\begin{center}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+$U[j]$ & $V[j]$ & $J[j]$ & Cursor / model & Cost\\
+\midrule
+0 PAD & 0 & 0 & Neither advances & 0\\
+1 SYNC & Next trace activity & Matching visible transition & Both advance & 0\\
+2 LOG & Next trace activity & 0 & Trace only & 1\\
+3 MODEL & 0 & Enabled transition & Model only & 0 silent, 1 visible\\
+\bottomrule
+\end{tabular}
+\end{center}
+Active rows form one prefix of length $L$. The trace has one active prefix of length $n$. All remaining fields are zero. Reject unknown IDs, holes in either prefix, and nonzero padding.
+
+\subsection*{Hash exactly these values}
+Let $H$ be the BN254 MiMC field-element hash, with ordered inputs and fixed domains.
+\[
+C=H(d_{\rm trace},n,A[0],\ldots,A[184],r),\qquad
+\ell_i=H(d_{\rm leaf},i,C).
+\]
+At tree level $h$, hash $H(d_{\rm node}+h,\mathrm{left},\mathrm{right})$. Use index bits least-significant first to order siblings from leaf to root. Trace, leaf, and base node domains are 20260910, 20260911, and 20260912. The empty leaf is $H(d_{\rm leaf},0,0)$, with empty subtrees derived recursively.
+
+Use the shared byte-framing helper for checkpoints, key bytes, and manifest bytes. It includes domains, part counts, byte lengths, and 31-byte chunks. Do not replace it with JSON text hashing or arbitrary field reduction. The local checkpoint binds its predecessor, index, count, commitment, new root, and case ID. The circuit trace commitment binds only activities and length, not patient metadata. Require cross-language test vectors and identical stored/circuit roots.
+
+\clearpage
+\section*{3. The single circuit and its six checks}
+Implement \file{SingleTracePetriNetCircuit}. The pseudocode below is a \emph{constraint specification}, not ordinary witness-dependent Go control flow. Unroll fixed-size loops and use constrained Boolean selectors. A host-side validation check is not a substitute for a circuit constraint.
+
+\begin{algorithm}[H]
+\caption{Check one committed trace and its candidate alignment}
+\small
+\textbf{Public} $C,R,K$.\quad
+\textbf{Private} $A,n,r,i,\omega,U,V,J,L,c$.\\
+\textbf{Constants} fixed model, dictionary, hash domains and capacities.
+\begin{algorithmic}[1]
+\State Constrain $0\leq n\leq185$, $0\leq L\leq64$, and $0\leq i<2^{32}$.
+\State Constrain trace IDs, move types, active-prefix lengths, and zero suffixes.
+\State Assert $H(d_{\rm trace},n,A[0],\ldots,A[184],r)=C$. \Comment{Goal 1}
+\State $b\gets H(d_{\rm leaf},i,C)$.
+\For{$h=0,\ldots,31$}
+  \State Order $(b,\omega[h])$ as $(\mathrm{left},\mathrm{right})$ using bit $h$ of $i$.
+  \State $b\gets H(d_{\rm node}+h,\mathrm{left},\mathrm{right})$.
+\EndFor
+\State Assert $b=R$. \Comment{Goal 1}
+\State $q\gets0$, $m\gets m_0$, $z\gets0$.
+\For{$j=0,\ldots,63$}
+  \If{$U[j]=\mathrm{SYNC}$}
+    \State Assert $q<n$ and $V[j]=A[q]$. \Comment{Goal 2}
+    \State Assert $1\leq J[j]\leq35$ and $\lambda(J[j])=V[j]\ne0$.
+    \State $m\gets\mathsf{Fire}(m,J[j])$. \Comment{Goal 3}
+    \State $q\gets q+1$.
+  \ElsIf{$U[j]=\mathrm{LOG}$}
+    \State Assert $q<n$, $V[j]=A[q]$, and $J[j]=0$. \Comment{Goals 2--3}
+    \State $q\gets q+1$, $z\gets z+1$.
+  \ElsIf{$U[j]=\mathrm{MODEL}$}
+    \State Assert $V[j]=0$ and $1\leq J[j]\leq35$.
+    \State $m\gets\mathsf{Fire}(m,J[j])$. \Comment{Goal 3}
+    \State $z\gets z+\mathbf{1}[\lambda(J[j])\ne0]$.
+  \Else
+    \State Assert $U[j]=V[j]=J[j]=0$. \Comment{Padding only}
+  \EndIf
+\EndFor
+\State Assert $q=n$ and every coordinate of $m=m_f$. \Comment{Goal 4}
+\State Assert $z=c$. \Comment{Goal 5}
+\State Assert $z\leq K$ using a constrained integer comparison. \Comment{Goal 6}
+\end{algorithmic}
+\end{algorithm}
+
+\small
+\begin{tabularx}{\textwidth}{@{}p{.29\textwidth}X@{}}
+\toprule
+Required check & What it prevents\\
+\midrule
+1. Commitment / membership & Substituting another trace, opening, index, path, or root.\\
+2. Trace consistency & Reordering, inventing, or repeatedly consuming an event.\\
+3. Move / model legality & Fake transitions, label mismatches, missing input tokens, or illegal token updates.\\
+4. Complete alignment & Proving only a prefix, or stopping with extra/missing tokens.\\
+5. Correct cost & Claiming a private total different from the move-derived unit cost.\\
+6. Threshold & Certifying a candidate whose calculated cost exceeds the approved $K$.\\
+\bottomrule
+\end{tabularx}
+
+$\mathsf{Fire}$ is not a second circuit. It enforces the input-token checks and Boolean updates in Section~2. The existing implementation implies the consuming cursor bound through monotone increments and final equality; a rewrite may constrain it explicitly as above. Costs are bounded by 64. Validate canonical public integers at the application boundary. No floats or modular-wraparound interpretation is allowed.
+
+\clearpage
+\normalsize
+\section*{4. Audit logic, acceptance tests, and handoff}
+\subsection*{External verifier procedure --- not another circuit}
+\begin{enumerate}
+\item Load the auditor-approved manifest fingerprint and verification key. Validate the manifest, key fingerprint, root, nonnegative $K$, target $\eta\in[1,100]$, and nonempty roster. Reject duplicate indices or commitments. Set $N$ to the roster size once.
+\item For each bundle, require the approved manifest fingerprint and an expected commitment. Reconstruct public input $(C,R,K)$ from the bundle's $C$ and the manifest's $R,K$. Verify the proof under the approved key. The exact cost $c$ must not appear in the public bundle or audit report.
+\item Only after successful verification, insert $C$ into an accepted set. Repeated proofs count once. A previous invalid attempt must not block a later valid proof.
+\item Report $S=|\mathrm{accepted}|$, $N-S$ uncertified cases, and whether
+\[
+S\geq\left\lceil\frac{\eta N}{100}\right\rceil.
+\]
+Use exact integer arithmetic. For 100 agreed cases, 95 certificates establish \emph{at least} 95\%. Ten accepted submissions out of 100 agreed cases certify 10\%, not 100\%.
+\end{enumerate}
+
+\must{Interpretation.} Missing, rejected, above-threshold, or oversized candidates leave cases uncertified. They do not prove nonconformance or reduce $N$. Proving a candidate of cost $c$ proves existence of an alignment of cost at most $K$, not that $c$ is optimal. The approved roster must represent distinct intended real cases. Cryptography does not establish this association or the truth of hospital records. An untrusted prover cannot approve its own root, roster, or setup. The local demo does not implement an independent key registry, root publication service, or multiparty setup ceremony.
+
+\must{Regenerate old proof artifacts.} The private-cost circuit has three public inputs instead of four. Generate new proving and verification keys, manifests, and proofs in a new audit directory. Audit format v3 rejects legacy v2 manifests and cost-bearing bundles. Existing files are preserved, and already disclosed costs cannot be hidden retroactively.
+
+\subsection*{Acceptance tests the team must deliver}
+Start from a known valid witness and mutate one property at a time. Test the circuit directly, not only the witness builder's input validation.
+\begin{itemize}
+\item \must{Positive.} Prove and verify a real Sepsis trace. Exercise legal SYNC, LOG, visible MODEL, silent MODEL, and representative choice, split/join, and loop executions. Confirm computed unit costs independently.
+\item \must{Six-check rejection tests.} Alter trace/salt/path/root; substitute or reorder a consumed activity; use an unknown, mismatching, or disabled transition; leave an event or token unconsumed; falsify $c$; set $K<c$. Each must reject.
+\item \must{Encoding tests.} Unknown move type, active rows after padding, nonzero unused fields, false lengths, out-of-range IDs/index, and a capacity overflow must not be silently accepted or truncated.
+\item \must{Audit tests.} Changed manifest/key/root/threshold, unexpected commitment, repeated proofs, missing cases, invalid-then-valid submission, and integer percentage boundaries. Duplicates never increase $S$ and failures never reduce $N$.
+\item \must{Interoperability and privacy.} Python and Go commitments/roots agree. Verify using only public artifacts on a separate directory or machine. Do not export activities, salts, alignment arrays, exact costs, or patient IDs to the auditor. Test that the public witness contains only $C,R,K$ and public bundles omit $c$. Roster indices and commitments remain visible and linkable. Acceptance reveals a cost bound. At $K=0$, it implies zero cost. Repeated thresholds can reveal further bounds.
+\end{itemize}
+
+\subsection*{Existing code to consult and required deliverables}
+\small
+\begin{tabularx}{\textwidth}{@{}p{.54\textwidth}X@{}}
+\toprule
+Repository-relative file or component & Responsibility\\
+\midrule
+\file{scripts/healthcare_pipeline.py} & Preparation, PM4Py alignment, witness exports.\\
+\file{scripts/generate_gnark_model.py} & Generate fixed model tables.\\
+\file{circuit/sepsis_model_gen.go} & Compiled model constants and sparse arcs.\\
+\file{src/zkalign/append_log.py}, \file{sparse_merkle.py} & Local trace store and snapshot tree.\\
+\file{hashing/mimc.go}, \file{src/zkalign/mimc.py} & Matching field and byte hash encodings.\\
+\file{circuit/alignment.go}, \file{witness.go} & Six checks and witness conversion.\\
+\file{circuit/commitment.go}, \file{merkle.go} & Commitment and membership preparation.\\
+\file{circuit/proof.go}, \file{audit.go} & Proof boundary and population accounting.\\
+\file{cmd/zkalign-proof}, \file{cmd/zkalign-audit} & Single-proof and audit command-line entry points.\\
+\bottomrule
+\end{tabularx}
+\normalsize
+\must{Done means} reproducible setup, exported model/dictionary, matching hash test vectors, all six checks tested, serialized proofs independently verified, and a duplicate-safe audit report. Record capacities and failures. Run \file{make setup}, \file{make pre-zkp}, \file{make test}, then \file{make prove} from the repository root. The current reference case AG has 5 events, 18 moves, and cost 1 at $K=1$. Use the README's audit commands for the separate three-case demonstration, not as evidence about all 1,050 traces.
+
+\end{document}

@@ -60,6 +60,6 @@ func main() {
 	if err := circuit.VerifyGroth16Proof(proof, verifyingKey, publicWitness); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("PROOF VERIFIED SUCCESSFULLY: case %s has a valid, complete alignment with cost %d, which is within threshold %d.\n", summary.CaseID, summary.AlignmentCost, summary.CostThreshold)
+	fmt.Printf("PROOF VERIFIED SUCCESSFULLY: the committed trace admits a valid, complete alignment with cost <= %d. The exact cost remains private.\n", summary.CostThreshold)
 	fmt.Printf("Proof written to %s. The verifier used only the proof and public inputs.\n", *proofPath)
 }

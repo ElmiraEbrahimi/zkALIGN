@@ -39,6 +39,7 @@ func TestAuditManifestValidation(t *testing.T) {
 		"negative threshold":   func(m *AuditManifest) { m.Threshold = -1 },
 		"invalid target":       func(m *AuditManifest) { m.TargetPercent = 101 },
 		"bad fingerprint":      func(m *AuditManifest) { m.VerificationKeyMiMC = "bad" },
+		"legacy public cost":   func(m *AuditManifest) { m.Version = "zkalign-single-trace-audit-v2-mimc" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := base
@@ -182,7 +183,7 @@ func TestAuditRealProofAccounting(t *testing.T) {
 		if _, err := proof.WriteTo(&proofBuffer); err != nil {
 			t.Fatal(err)
 		}
-		return AuditProofBundle{ManifestMiMC: digest, Commitment: assignment.TraceCommitment.(*big.Int).String(), Cost: 1, Proof: proofBuffer.Bytes()}
+		return AuditProofBundle{ManifestMiMC: digest, Commitment: assignment.TraceCommitment.(*big.Int).String(), Proof: proofBuffer.Bytes()}
 	}
 	bundleA, bundleB := makeBundle(a), makeBundle(b)
 	v := newVerifier(manifestBytes)
@@ -191,8 +192,8 @@ func TestAuditRealProofAccounting(t *testing.T) {
 	}
 	v.Check("malformed.json", []byte("not json"))
 	bad := bundleA
-	bad.Cost = 0
-	v.Check("false-cost.json", encode(bad))
+	bad.Proof = []byte{0}
+	v.Check("invalid-proof.json", encode(bad))
 	if v.Report().Certified != 0 {
 		t.Fatal("invalid proof counted")
 	}
@@ -209,8 +210,6 @@ func TestAuditRealProofAccounting(t *testing.T) {
 	for name, mutate := range map[string]func(*AuditProofBundle){
 		"unexpected commitment": func(b *AuditProofBundle) { b.Commitment = "1" },
 		"foreign audit":         func(b *AuditProofBundle) { b.ManifestMiMC = strings.Repeat("0", 64) },
-		"cost changed":          func(b *AuditProofBundle) { b.Cost = 0 },
-		"over threshold":        func(b *AuditProofBundle) { b.Cost = 2 },
 		"wrong case proof":      func(b *AuditProofBundle) { b.Commitment = bundleB.Commitment },
 		"truncated proof":       func(b *AuditProofBundle) { b.Proof = b.Proof[:5] },
 		"trailing data":         func(b *AuditProofBundle) { b.Proof = append(append([]byte(nil), b.Proof...), 0) },
@@ -224,6 +223,32 @@ func TestAuditRealProofAccounting(t *testing.T) {
 				t.Fatal("invalid bundle certified")
 			}
 		})
+	}
+	// The public bundle and report must not disclose the exact cost. Reject
+	// cost-bearing legacy bundles rather than silently ignoring their fields.
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(encode(bundleA), &fields); err != nil {
+		t.Fatal(err)
+	}
+	if len(fields) != 3 || fields["cost"] != nil {
+		t.Fatal("unexpected public bundle fields")
+	}
+	for _, name := range []string{"cost", "alignment_cost"} {
+		t.Run("reject disclosed "+name, func(t *testing.T) {
+			var disclosed map[string]json.RawMessage
+			if err := json.Unmarshal(encode(bundleA), &disclosed); err != nil {
+				t.Fatal(err)
+			}
+			disclosed[name] = json.RawMessage("1")
+			v := newVerifier(manifestBytes)
+			v.Check("legacy.json", encode(disclosed))
+			if v.Report().Certified != 0 {
+				t.Fatal("cost-bearing bundle accepted")
+			}
+		})
+	}
+	if bytes.Contains(encode(r), []byte(`"cost"`)) || bytes.Contains(encode(r), []byte(`"alignment_cost"`)) {
+		t.Fatal("audit report reveals exact cost")
 	}
 	for name, mutate := range map[string]func(*AuditManifest){
 		"different root":      func(m *AuditManifest) { m.Root = "1" },

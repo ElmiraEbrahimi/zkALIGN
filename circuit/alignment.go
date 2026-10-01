@@ -37,7 +37,10 @@ type SingleTracePetriNetCircuit struct {
 	TraceCommitment frontend.Variable `gnark:",public"`
 	EventLogRoot    frontend.Variable `gnark:",public"`
 	CostThreshold   frontend.Variable `gnark:",public"`
-	AlignmentCost   frontend.Variable `gnark:",public"`
+
+	// The exact cost is private. Goals 5 and 6 still recompute it from the
+	// alignment and prove it is at most the public threshold.
+	AlignmentCost frontend.Variable
 
 	// These fields are secret witness values. TraceEvents contains numeric
 	// activity IDs 1..16 followed by zero padding up to MaxTraceEvents.

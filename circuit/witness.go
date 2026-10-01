@@ -23,7 +23,8 @@ type savedAlignmentWitness struct {
 	DerivedUnitCost         int                  `json:"derived_unit_cost"`
 }
 
-// WitnessSummary contains non-secret metadata used for console reporting.
+// WitnessSummary is prover-local metadata, including the private exact cost.
+// Do not serialize it into public proof bundles or auditor reports.
 type WitnessSummary struct {
 	CaseID          string
 	TraceIndex      int

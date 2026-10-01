@@ -17,7 +17,8 @@ transitions. The former linear teaching circuit has been replaced by
 
 - PM4Py state-equation A* alignment generation outside the circuit.
 - Canonical commitments with domain separation, length, padding, and salt.
-- Exact-cost and threshold checks.
+- Private exact-cost recomputation and a public threshold check. The exact
+  cost is not a public input or part of an auditor proof bundle.
 - Negative tests for trace substitution, fake moves, incomplete alignments,
   incorrect cost, and threshold failure.
 - A Go/gnark circuit for one real held-out Sepsis trace against the fixed real
@@ -60,7 +61,7 @@ Expected important output:
 ```text
 Preparing real Sepsis case AG (trace index 13): 5 events, 18 alignment moves.
 Compiled SingleTracePetriNetCircuit with 137925 constraints.
-PROOF VERIFIED SUCCESSFULLY: case AG has a valid, complete alignment with cost 1, which is within threshold 1.
+PROOF VERIFIED SUCCESSFULLY: the committed trace admits a valid, complete alignment with cost <= 1. The exact cost remains private.
 Proof written to outputs/sepsis/proofs/single_trace.groth16.
 ```
 
@@ -81,6 +82,15 @@ Case `AG` has verified cost 1, so threshold 0 must fail. This failure is
 expected and demonstrates Goal 6.
 
 ### Certify a percentage with separate single-trace proofs
+
+**Private-cost format change:** audit version
+`zkalign-single-trace-audit-v3-mimc-private-cost` has exactly three public
+circuit fields: commitment, root and threshold. The claimed exact cost is a
+private witness constrained to the move-derived cost. Regenerate setup keys,
+manifests and proofs in a **new directory** with `init` and `prove`; existing
+public-cost (v2) artifacts are not compatible and are rejected. Old files are
+not deleted or made private retroactively. Already disclosed costs cannot be
+hidden by generating a new proof.
 
 The new `zkalign-audit` command fixes a population **before** proving. It uses
 one shared Groth16 setup for all proofs. The independent verifier counts only
@@ -157,12 +167,15 @@ Audit artifacts are generated under ignored `outputs/`:
 | `manifest.mimc` | Convenience copy of the proposed MiMC fingerprint | Not a substitute for an independently retained pin |
 | `verification.key` | Shared, approved Groth16 verification key | Yes |
 | `proving.key` | Shared proving material | Not needed by the auditor |
-| `proofs/trace-INDEX.json` | One proof, public commitment, exact cost and manifest fingerprint | Yes |
+| `proofs/trace-INDEX.json` | One proof, public commitment and manifest fingerprint; no exact cost | Yes |
 | `verified-report.json` | Verifier's counts, case indices and per-file decisions | Auditor output |
 
-Public indices, commitments and exact costs are linkable audit metadata. No
-patient identifiers, trace activities, salts or alignment arrays are written
-to these public bundles. A verifier must trust the approved roster to associate
+Public indices and commitments are linkable audit metadata. The threshold and
+certification status are also public, but the exact alignment cost is private.
+No patient identifiers, trace activities, salts, alignment arrays or exact
+costs are written to these public bundles. Proof acceptance still reveals that
+some valid alignment has cost at most K (so K=0 implies cost zero). Repeated
+audits under different thresholds can reveal further bounds. A verifier must trust the approved roster to associate
 each commitment with a distinct intended real-world case. The circuit proves
 membership of the commitment, not authenticity of a patient record or the
 external roster. Root publication and approval remain organizational steps,
@@ -307,7 +320,7 @@ real PM4Py witness + MiMC event-log membership path
 six checks in SingleTracePetriNetCircuit
           |
           v
-Groth16 proof + public root/commitment/cost/threshold
+Groth16 proof + public root/commitment/threshold (exact cost private)
 ```
 
 The current circuit bound is 185 trace events and 64 alignment moves. It proves
