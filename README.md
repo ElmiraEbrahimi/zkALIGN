@@ -83,35 +83,40 @@ expected and demonstrates Goal 6.
 
 ### Certify a percentage with separate single-trace proofs
 
-**Private-cost format change:** audit version
-`zkalign-single-trace-audit-v3-mimc-private-cost` has exactly three public
-circuit fields: commitment, root and threshold. The claimed exact cost is a
-private witness constrained to the move-derived cost. Regenerate setup keys,
-manifests and proofs in a **new directory** with `init` and `prove`; existing
-public-cost (v2) artifacts are not compatible and are rejected. Old files are
-not deleted or made private retroactively. Already disclosed costs cannot be
-hidden by generating a new proof.
+**Full-snapshot format change:** audit version
+`zkalign-single-trace-audit-v4-mimc-full-snapshot` requires the roster to contain
+exactly the indices `0..N-1`. The verifier reconstructs the 32-level sparse
+Merkle root from every listed `(index, commitment)` pair and rejects a mismatch
+with the approved root. It rejects duplicate indices/commitments and reserves
+zero commitments for empty leaves. It cannot accept a subset of that snapshot.
+MiMC, its domains, and the circuit are unchanged. There are still exactly three
+public circuit fields: commitment, root and threshold; the exact cost is private.
+Legacy manifests are rejected. Create and independently approve a v4 manifest
+and new manifest-bound bundles in a **new directory**. Existing v3 circuit keys
+are mathematically compatible; `init` creates a new setup for convenience.
+Public-cost v2 keys are not compatible. Old files are not deleted and previously
+disclosed costs cannot be hidden retroactively.
 
 The new `zkalign-audit` command fixes a population **before** proving. It uses
 one shared Groth16 setup for all proofs. The independent verifier counts only
 distinct approved commitments with valid proofs. Its denominator is always
-the full agreed population, not the number of proof files supplied.
+the full committed snapshot, not the number of proof files supplied.
 
-Run this small real-data demonstration from the repository root. Use a new
+Run this full-snapshot demonstration from the repository root. Use a new
 output directory for each audit configuration. Existing audit artifacts are
 never silently overwritten.
 
 ```bash
 go run ./cmd/zkalign-audit init \
-  -out outputs/sepsis/audit-demo \
-  -cases A,AB,AG -threshold 1 -target 95
+  -out outputs/sepsis/audit-full-v4 \
+  -threshold 1 -target 95
 
-go run ./cmd/zkalign-audit prove -audit outputs/sepsis/audit-demo
+go run ./cmd/zkalign-audit prove -audit outputs/sepsis/audit-full-v4
 ```
 
-The three demonstration cases have candidate costs 0, 0 and 1. This is an
-explicit **three-case demonstration scope**, not evidence about all 1,050
-cases. The circuit's 64-move limit remains unchanged. A missing alignment,
+The population contains all 1,050 stored cases. Only 210 held-out alignments
+are currently saved, so this run cannot establish 95% of the full snapshot.
+The circuit's 64-move limit remains unchanged. A missing alignment,
 capacity failure, invalid witness or candidate cost above K leaves that case
 uncertified and does not reduce the denominator. The prover reports such
 cases and continues. Re-running `prove` preserves existing proof files.
@@ -124,20 +129,15 @@ from an untrusted manifest received alongside the proofs.
 
 ```bash
 go run ./cmd/zkalign-audit verify \
-  -manifest outputs/sepsis/audit-demo/manifest.json \
+  -manifest outputs/sepsis/audit-full-v4/manifest.json \
   -pin YOUR_PREVIOUSLY_APPROVED_MANIFEST_MIMC \
-  -vk outputs/sepsis/audit-demo/verification.key \
-  -proofs outputs/sepsis/audit-demo/proofs \
-  -report outputs/sepsis/audit-demo/verified-report.json
+  -vk outputs/sepsis/audit-full-v4/verification.key \
+  -proofs outputs/sepsis/audit-full-v4/proofs \
+  -report outputs/sepsis/audit-full-v4/verified-report.json
 ```
 
-Expected result for the demonstration is:
-
-```text
-CERTIFIED: 3/3 agreed traces (100.00%). Required: 3 for target 95% at K=1.
-UNCERTIFIED: 0. Missing/invalid proofs do not establish nonconformance.
-AUDIT TARGET MET: at least 95% of the agreed traces admit a valid, complete alignment with cost <= 1.
-```
+The 95% target requires 998 certified cases out of 1,050. With only held-out
+witnesses available, the verifier reports that this target is not established.
 
 The verifier reads only the manifest, verification key and proof bundles. It
 can run in a separate directory or machine without event logs, alignments,
@@ -152,12 +152,11 @@ when it is not established, and 1 for configuration or I/O errors. When using
 `go run`, Go may wrap the program's nonzero exit status. Use a compiled binary
 if another program needs to distinguish exit statuses.
 
-Omit `-cases` during `init` to fix **all stored cases** as the population.
-Do not do this expecting the current saved witnesses to cover all 1,050 cases
-because the pipeline aligns only the 210 held-out cases. The remaining cases
-will be uncertified. To audit a larger agreed scope, first prepare its candidate
-alignments without silently excluding difficult cases. The existing move bound
-can also prevent certification. None of these failures proves nonconformance.
+The `-cases` subset option has been removed. Prepare candidate alignments for
+the entire snapshot without silently excluding difficult cases. The existing
+move bound can also prevent certification. None of these failures proves
+nonconformance. Raising the move bound to 384 and benchmarking all 210 held-out
+proofs remains a pending evaluation task, not part of this population fix.
 
 Audit artifacts are generated under ignored `outputs/`:
 

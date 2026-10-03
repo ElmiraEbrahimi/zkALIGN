@@ -76,20 +76,12 @@ func initialize(args []string) error {
 	flags := flag.NewFlagSet("init", flag.ContinueOnError)
 	out := flags.String("out", "outputs/sepsis/audit", "new directory for shared keys and proposed audit manifest")
 	records := flags.String("records", defaultRecords, "private trace records")
-	cases := flags.String("cases", "", "agreed comma-separated case IDs; omit to include ALL stored cases")
 	threshold := flags.Int("threshold", 1, "shared maximum unit alignment cost")
 	target := flags.Int("target", 95, "required percentage, 1..100")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
-	var scope []string
-	if *cases != "" {
-		scope = strings.Split(*cases, ",")
-		for i := range scope {
-			scope[i] = strings.TrimSpace(scope[i])
-		}
-	}
-	root, population, _, err := circuit.PrepareAuditPopulation(*records, scope)
+	root, population, _, err := circuit.PrepareAuditPopulation(*records)
 	if err != nil {
 		return err
 	}
@@ -164,7 +156,7 @@ func prove(args []string) error {
 	if err != nil {
 		return err
 	}
-	root, population, ids, err := circuit.PrepareAuditPopulation(*records, nil)
+	root, population, ids, err := circuit.PrepareAuditPopulation(*records)
 	if err != nil {
 		return err
 	}

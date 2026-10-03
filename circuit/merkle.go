@@ -23,6 +23,10 @@ type circuitMerkleProof struct {
 	Siblings [MerkleTreeDepth]*big.Int
 }
 
+func circuitMerkleLeaf(index uint32, commitment *big.Int) *big.Int {
+	return hashFieldElements(big.NewInt(DomainMerkleLeaf), new(big.Int).SetUint64(uint64(index)), commitment)
+}
+
 func loadCircuitMerkleProof(recordsPath string, targetIndex uint32) (circuitMerkleProof, error) {
 	file, err := os.Open(recordsPath)
 	if err != nil {
@@ -53,7 +57,7 @@ func loadCircuitMerkleProof(recordsPath string, targetIndex uint32) (circuitMerk
 		var trace [MaxTraceEvents]int
 		copy(trace[:], record.ActivityIDs)
 		commitment := ComputeTraceCommitment(len(record.ActivityIDs), trace, salt)
-		leaf := hashFieldElements(big.NewInt(DomainMerkleLeaf), new(big.Int).SetUint64(uint64(record.Index)), commitment)
+		leaf := circuitMerkleLeaf(record.Index, commitment)
 		if _, exists := leaves[record.Index]; exists {
 			return circuitMerkleProof{}, fmt.Errorf("duplicate trace index %d", record.Index)
 		}
@@ -66,7 +70,13 @@ func loadCircuitMerkleProof(recordsPath string, targetIndex uint32) (circuitMerk
 	if !foundTarget {
 		return circuitMerkleProof{}, fmt.Errorf("trace index %d is absent from commitment records", targetIndex)
 	}
+	return buildCircuitMerkleProof(leaves, targetIndex), nil
+}
 
+// Shared tree construction for private witness paths and public audit rosters.
+// Leaves are already indexed hashes. Defaults and level domains must remain
+// identical to the circuit and append-only trace store.
+func buildCircuitMerkleProof(leaves map[uint32]*big.Int, targetIndex uint32) circuitMerkleProof {
 	defaultHashes := make([]*big.Int, MerkleTreeDepth+1)
 	defaultHashes[0] = hashFieldElements(big.NewInt(DomainMerkleLeaf), big.NewInt(0), big.NewInt(0))
 	for level := 0; level < MerkleTreeDepth; level++ {
@@ -109,5 +119,5 @@ func loadCircuitMerkleProof(recordsPath string, targetIndex uint32) (circuitMerk
 		root = defaultHashes[MerkleTreeDepth]
 	}
 	proof.Root = root
-	return proof, nil
+	return proof
 }

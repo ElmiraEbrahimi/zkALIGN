@@ -18,9 +18,10 @@ import (
 	"github.com/consensys/gnark/frontend"
 )
 
-// v3 removes the exact cost from the public witness and proof bundle. Keys
-// and proofs from v2 must be regenerated, not reused with this statement.
-const AuditVersion = "zkalign-single-trace-audit-v3-mimc-private-cost"
+// v4 requires the roster to reconstruct the entire snapshot, not a subset.
+// The private-cost circuit and its keys are unchanged from v3. Old manifests
+// and bundles must be regenerated and approved under the full-snapshot policy.
+const AuditVersion = "zkalign-single-trace-audit-v4-mimc-full-snapshot"
 
 // AuditCase is an agreed population member. Indices and commitments are public;
 // patient identifiers, activities, salts and alignments are not included.
@@ -89,14 +90,30 @@ func (m AuditManifest) Validate() error {
 		return fmt.Errorf("invalid verification-key fingerprint")
 	}
 	indices, commitments := map[uint32]bool{}, map[string]bool{}
+	leaves := make(map[uint32]*big.Int, len(m.Cases))
 	for _, entry := range m.Cases {
-		if _, err := canonicalField(entry.Commitment); err != nil {
+		commitment, err := canonicalField(entry.Commitment)
+		if err != nil {
 			return fmt.Errorf("commitment: %w", err)
+		}
+		// Zero at index 0 hashes to the default empty leaf. Do not allow an
+		// empty tree position to be counted as a committed case.
+		if commitment.Sign() == 0 {
+			return fmt.Errorf("zero commitment is reserved for empty leaves")
+		}
+		if uint64(entry.Index) >= uint64(len(m.Cases)) {
+			return fmt.Errorf("population indices must be exactly 0..N-1")
 		}
 		if indices[entry.Index] || commitments[entry.Commitment] {
 			return fmt.Errorf("duplicate population index or commitment")
 		}
 		indices[entry.Index], commitments[entry.Commitment] = true, true
+		leaves[entry.Index] = circuitMerkleLeaf(entry.Index, commitment)
+	}
+	// N unique indices in [0,N) give the complete contiguous index set.
+	// Reuse the witness tree builder, including all 32 default subtrees.
+	if buildCircuitMerkleProof(leaves, 0).Root.String() != m.Root {
+		return fmt.Errorf("population does not reconstruct the approved snapshot root")
 	}
 	return nil
 }
@@ -229,23 +246,15 @@ func (v *AuditVerifier) Report() AuditReport {
 	return r
 }
 
-// PrepareAuditPopulation includes all stored cases if caseIDs is nil. An
-// explicit subset is allowed only as an agreed audit scope, not selected later
-// based on which proofs succeed. The root always covers the complete store.
+// PrepareAuditPopulation includes every stored case. Subset rosters are not
+// supported: the population must reconstruct the complete committed snapshot.
 // Returned case IDs are private and used only by the prover CLI.
-func PrepareAuditPopulation(recordsPath string, caseIDs []string) (string, []AuditCase, map[uint32]string, error) {
+func PrepareAuditPopulation(recordsPath string) (string, []AuditCase, map[uint32]string, error) {
 	f, err := os.Open(recordsPath)
 	if err != nil {
 		return "", nil, nil, err
 	}
 	defer f.Close()
-	selected := map[string]bool{}
-	for _, id := range caseIDs {
-		if id == "" || selected[id] {
-			return "", nil, nil, fmt.Errorf("empty or duplicate requested case")
-		}
-		selected[id] = true
-	}
 	seenIDs, seenIndices := map[string]bool{}, map[uint32]bool{}
 	entries := []AuditCase{}
 	ids := map[uint32]string{}
@@ -276,16 +285,19 @@ func PrepareAuditPopulation(recordsPath string, caseIDs []string) (string, []Aud
 		if !ok || salt.Sign() < 0 {
 			return "", nil, nil, fmt.Errorf("invalid salt")
 		}
-		if caseIDs == nil || selected[record.CaseID] {
-			entries = append(entries, AuditCase{Index: record.Index, Commitment: ComputeTraceCommitment(len(record.ActivityIDs), trace, salt).String()})
-			ids[record.Index] = record.CaseID
-		}
+		entries = append(entries, AuditCase{Index: record.Index, Commitment: ComputeTraceCommitment(len(record.ActivityIDs), trace, salt).String()})
+		ids[record.Index] = record.CaseID
 	}
 	if err := scanner.Err(); err != nil {
 		return "", nil, nil, err
 	}
-	if len(entries) == 0 || (caseIDs != nil && len(entries) != len(caseIDs)) {
-		return "", nil, nil, fmt.Errorf("empty population or requested case missing from records")
+	if len(entries) == 0 {
+		return "", nil, nil, fmt.Errorf("empty population")
+	}
+	for _, entry := range entries {
+		if uint64(entry.Index) >= uint64(len(entries)) {
+			return "", nil, nil, fmt.Errorf("record indices must be exactly 0..N-1")
+		}
 	}
 	path, err := loadCircuitMerkleProof(recordsPath, entries[0].Index)
 	if err != nil {

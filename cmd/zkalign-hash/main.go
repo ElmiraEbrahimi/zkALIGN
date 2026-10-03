@@ -33,7 +33,7 @@ func main() {
 		return
 	}
 	if *records != "" {
-		root, entries, _, err := circuit.PrepareAuditPopulation(*records, nil)
+		root, entries, _, err := circuit.PrepareAuditPopulation(*records)
 		if err != nil {
 			log.Fatal(err)
 		}

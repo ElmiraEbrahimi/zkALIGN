@@ -25,8 +25,78 @@ func TestAuditPercentageBoundary(t *testing.T) {
 	}
 }
 
+// Keep the snapshot root fixed while an adversary changes its public roster.
+// The root comes from the same private-record loader used for circuit witnesses.
+func TestAuditFullSnapshotPopulation(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "records.jsonl")
+	var data []byte
+	var cases []AuditCase
+	for i := 0; i < 3; i++ {
+		record := privateTraceRecord{HashScheme: hashing.Scheme, Index: uint32(i), CaseID: strconv.Itoa(i), ActivityIDs: []int{5}, Salt: strconv.FormatInt(int64(i+1), 16)}
+		row, err := json.Marshal(record)
+		if err != nil {
+			t.Fatal(err)
+		}
+		data = append(append(data, row...), '\n')
+		var trace [MaxTraceEvents]int
+		trace[0] = 5
+		cases = append(cases, AuditCase{Index: uint32(i), Commitment: ComputeTraceCommitment(1, trace, big.NewInt(int64(i+1))).String()})
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	proof, err := loadCircuitMerkleProof(path, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base := AuditManifest{Version: AuditVersion, Root: proof.Root.String(), VerificationKeyMiMC: strings.Repeat("0", 63) + "1", Threshold: 1, TargetPercent: 95, Cases: cases}
+	t.Run("full snapshot accepted", func(t *testing.T) {
+		if err := base.Validate(); err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("roster order does not change snapshot", func(t *testing.T) {
+		m := base
+		m.Cases = []AuditCase{cases[2], cases[0], cases[1]}
+		if err := m.Validate(); err != nil {
+			t.Fatal(err)
+		}
+	})
+	for name, mutate := range map[string]func(*AuditManifest){
+		"removed last case":   func(m *AuditManifest) { m.Cases = m.Cases[:2] },
+		"removed middle case": func(m *AuditManifest) { m.Cases = append(m.Cases[:1], m.Cases[2:]...) },
+		"extra fake case":     func(m *AuditManifest) { m.Cases = append(m.Cases, AuditCase{Index: 3, Commitment: "42"}) },
+		"noncontiguous index": func(m *AuditManifest) { m.Cases[2].Index = 4 },
+		"swapped commitments": func(m *AuditManifest) {
+			m.Cases[0].Commitment, m.Cases[1].Commitment = m.Cases[1].Commitment, m.Cases[0].Commitment
+		},
+		"replaced commitment":   func(m *AuditManifest) { m.Cases[1].Commitment = "42" },
+		"empty leaf commitment": func(m *AuditManifest) { m.Cases[0].Commitment = "0" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := base
+			m.Cases = append([]AuditCase(nil), cases...)
+			mutate(&m)
+			if m.Validate() == nil {
+				t.Fatal("altered snapshot population accepted")
+			}
+		})
+	}
+}
+
+func TestAuditEmptyLeafCannotCountAsCase(t *testing.T) {
+	// An empty tree and a zero commitment at index 0 have the same leaf
+	// encoding. Root equality alone is therefore not enough for this case.
+	emptyRoot := buildCircuitMerkleProof(nil, 0).Root.String()
+	m := AuditManifest{Version: AuditVersion, Root: emptyRoot, VerificationKeyMiMC: strings.Repeat("0", 64), Threshold: 1, TargetPercent: 95, Cases: []AuditCase{{Index: 0, Commitment: "0"}}}
+	if m.Validate() == nil {
+		t.Fatal("empty leaf counted as a committed case")
+	}
+}
+
 func TestAuditManifestValidation(t *testing.T) {
 	base := AuditManifest{Version: AuditVersion, Root: "1", VerificationKeyMiMC: strings.Repeat("0", 63) + "1", Threshold: 1, TargetPercent: 95, Cases: []AuditCase{{Index: 0, Commitment: "2"}, {Index: 1, Commitment: "3"}}}
+	base.Root = buildCircuitMerkleProof(map[uint32]*big.Int{0: circuitMerkleLeaf(0, big.NewInt(2)), 1: circuitMerkleLeaf(1, big.NewInt(3))}, 0).Root.String()
 	if err := base.Validate(); err != nil {
 		t.Fatal(err)
 	}
@@ -40,6 +110,7 @@ func TestAuditManifestValidation(t *testing.T) {
 		"invalid target":       func(m *AuditManifest) { m.TargetPercent = 101 },
 		"bad fingerprint":      func(m *AuditManifest) { m.VerificationKeyMiMC = "bad" },
 		"legacy public cost":   func(m *AuditManifest) { m.Version = "zkalign-single-trace-audit-v2-mimc" },
+		"legacy subset format": func(m *AuditManifest) { m.Version = "zkalign-single-trace-audit-v3-mimc-private-cost" },
 	} {
 		t.Run(name, func(t *testing.T) {
 			m := base
@@ -74,7 +145,7 @@ func TestAuditNinetyFiveOfOneHundred(t *testing.T) {
 
 func TestPrepareAuditPopulation(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "records.jsonl")
-	records := []privateTraceRecord{{Index: 0, CaseID: "one", ActivityIDs: []int{5}, Salt: "01"}, {Index: 4, CaseID: "two", ActivityIDs: []int{5}, Salt: "02"}}
+	records := []privateTraceRecord{{Index: 0, CaseID: "one", ActivityIDs: []int{5}, Salt: "01"}, {Index: 1, CaseID: "two", ActivityIDs: []int{5}, Salt: "02"}}
 	writeRecords := func(records []privateTraceRecord) {
 		t.Helper()
 		var data []byte
@@ -92,28 +163,28 @@ func TestPrepareAuditPopulation(t *testing.T) {
 		}
 	}
 	writeRecords(records)
-	root, all, _, err := PrepareAuditPopulation(path, nil)
-	if err != nil || len(all) != 2 {
+	root, all, ids, err := PrepareAuditPopulation(path)
+	if err != nil || len(all) != 2 || ids[1] != "two" {
 		t.Fatalf("all records: %v", err)
 	}
-	subsetRoot, subset, ids, err := PrepareAuditPopulation(path, []string{"two"})
-	if err != nil || subsetRoot != root || len(subset) != 1 || subset[0] != all[1] || ids[4] != "two" {
-		t.Fatalf("subset must retain full snapshot root: %v", err)
+	m := AuditManifest{Version: AuditVersion, Root: root, VerificationKeyMiMC: strings.Repeat("0", 64), Threshold: 1, TargetPercent: 95, Cases: all}
+	if err := m.Validate(); err != nil {
+		t.Fatalf("prepared population must reconstruct snapshot: %v", err)
 	}
-	for _, selection := range [][]string{{"missing"}, {"two", "two"}, {""}} {
-		if _, _, _, err := PrepareAuditPopulation(path, selection); err == nil {
-			t.Fatal("invalid selection accepted")
-		}
+	records[1].Index = 4
+	writeRecords(records)
+	if _, _, _, err := PrepareAuditPopulation(path); err == nil {
+		t.Fatal("noncontiguous records accepted")
 	}
 	records[1].Index = 0
 	writeRecords(records)
-	if _, _, _, err := PrepareAuditPopulation(path, nil); err == nil {
+	if _, _, _, err := PrepareAuditPopulation(path); err == nil {
 		t.Fatal("duplicate index accepted")
 	}
-	records[1].Index = 4
+	records[1].Index = 1
 	records[1].CaseID = "one"
 	writeRecords(records)
-	if _, _, _, err := PrepareAuditPopulation(path, nil); err == nil {
+	if _, _, _, err := PrepareAuditPopulation(path); err == nil {
 		t.Fatal("duplicate case accepted")
 	}
 }
@@ -124,23 +195,17 @@ func TestPrepareAuditPopulation(t *testing.T) {
 // and indices, representing two different agreed cases rather than a replay.
 func TestAuditRealProofAccounting(t *testing.T) {
 	a, b := realCaseAssignment(t, 1), realCaseAssignment(t, 1)
-	b.TraceIndex = 12
+	a.TraceIndex, b.TraceIndex = 0, 1
 	b.TraceSalt = big.NewInt(424243)
 	var trace [MaxTraceEvents]int
 	copy(trace[:], []int{5, 4, 6, 10, 3})
 	b.TraceCommitment = ComputeTraceCommitment(5, trace, b.TraceSalt.(*big.Int))
-	leafA := hashFieldElements(big.NewInt(DomainMerkleLeaf), big.NewInt(13), a.TraceCommitment.(*big.Int))
-	leafB := hashFieldElements(big.NewInt(DomainMerkleLeaf), big.NewInt(12), b.TraceCommitment.(*big.Int))
-	a.MerklePath[0], b.MerklePath[0] = leafB, leafA
-	root := hashFieldElements(big.NewInt(DomainMerkleNode), leafB, leafA)
-	for level := 1; level < MerkleTreeDepth; level++ {
-		sibling := a.MerklePath[level].(*big.Int)
-		if (13>>level)&1 == 0 {
-			root = hashFieldElements(big.NewInt(int64(DomainMerkleNode+level)), root, sibling)
-		} else {
-			root = hashFieldElements(big.NewInt(int64(DomainMerkleNode+level)), sibling, root)
-		}
+	leaves := map[uint32]*big.Int{0: circuitMerkleLeaf(0, a.TraceCommitment.(*big.Int)), 1: circuitMerkleLeaf(1, b.TraceCommitment.(*big.Int))}
+	pathA, pathB := buildCircuitMerkleProof(leaves, 0), buildCircuitMerkleProof(leaves, 1)
+	for level := 0; level < MerkleTreeDepth; level++ {
+		a.MerklePath[level], b.MerklePath[level] = pathA.Siblings[level], pathB.Siblings[level]
 	}
+	root := pathA.Root
 	a.EventLogRoot, b.EventLogRoot = root, root
 	cs, err := frontend.Compile(ecc.BN254.ScalarField(), r1cs.NewBuilder, &SingleTracePetriNetCircuit{})
 	if err != nil {
@@ -154,7 +219,7 @@ func TestAuditRealProofAccounting(t *testing.T) {
 	if _, err := vk.WriteTo(&vkBuffer); err != nil {
 		t.Fatal(err)
 	}
-	m := AuditManifest{Version: AuditVersion, Root: root.String(), VerificationKeyMiMC: hashing.VerificationKey(vkBuffer.Bytes()), Threshold: 1, TargetPercent: 95, Cases: []AuditCase{{13, a.TraceCommitment.(*big.Int).String()}, {12, b.TraceCommitment.(*big.Int).String()}}}
+	m := AuditManifest{Version: AuditVersion, Root: root.String(), VerificationKeyMiMC: hashing.VerificationKey(vkBuffer.Bytes()), Threshold: 1, TargetPercent: 95, Cases: []AuditCase{{0, a.TraceCommitment.(*big.Int).String()}, {1, b.TraceCommitment.(*big.Int).String()}}}
 	encode := func(value any) []byte {
 		t.Helper()
 		data, err := json.Marshal(value)
@@ -258,7 +323,16 @@ func TestAuditRealProofAccounting(t *testing.T) {
 			changed := m
 			mutate(&changed)
 			data := encode(changed)
-			v := newVerifier(data)
+			v, err := NewAuditVerifier(data, hashing.Manifest(data), vkBuffer.Bytes())
+			if name == "different root" {
+				if err == nil {
+					t.Fatal("wrong root accepted before checking proofs")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
 			b := bundleA
 			b.ManifestMiMC = hashing.Manifest(data)
 			v.Check(name, encode(b))

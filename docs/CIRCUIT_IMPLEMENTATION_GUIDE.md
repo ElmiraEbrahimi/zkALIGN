@@ -175,8 +175,18 @@ Only the commitment, root, and threshold are public. The audit verifier does
 not receive the exact cost, and public proof bundles must not contain it.
 The circuit still checks the private claimed cost against its calculated sum
 and proves that sum is at most K. Keys and proofs from the previous public-cost
-circuit must be regenerated; audit v3 rejects legacy v2 manifests. Previously
+circuit must be regenerated; audit v4 rejects all legacy manifests. Previously
 published costs cannot be retracted by this update.
+
+Audit v4 also requires the public roster to contain exactly indices `0..N-1`
+and reconstruct the approved root using the same 32-level sparse Merkle builder
+as private witness loading. Duplicate indices/commitments, zero commitments,
+gaps, and root mismatches are rejected before any proof is counted. The CLI
+always includes all stored cases and no longer accepts a subset selection.
+This is verifier-side validation, not a new circuit. Keys for the v3 private-cost
+circuit remain compatible; manifests and manifest-bound bundles must be updated.
+The root still needs independent approval: omitted real-world events and
+replacement of an entire unanchored snapshot are not prevented by this check.
 
 ## The six circuit checks
 
