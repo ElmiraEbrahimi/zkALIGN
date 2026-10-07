@@ -1,12 +1,37 @@
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
-from eval.data import DATASETS
+from eval.data import DATASETS, save
 from eval.run import csv_write
-from eval.publish import check_experiments
+from eval.publish import check_experiments, publish
 
 
 class PublicationTests(unittest.TestCase):
+    def test_export_allowlist_excludes_extra_files_and_normalizes_csv(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "source"
+            results = root / "results"
+            (results / "figures").mkdir(parents=True)
+            (results / "utility_cases.csv").write_bytes(b"index\r\n0\r\n")
+            (results / "unexpected.csv").write_text("not a published artifact")
+            for name in DATASETS:
+                save(
+                    root / "data" / name / "measurements/audit-k1.json",
+                    {"details": {"population": 1, "certified": 1}},
+                )
+            destination = Path(tmp) / "published"
+            with (
+                patch("eval.publish.validate"),
+                patch("eval.publish.check_experiments"),
+                patch("eval.publish.report"),
+            ):
+                publish(root, destination)
+            self.assertEqual(
+                (destination / "utility_cases.csv").read_bytes(), b"index\n0\n"
+            )
+            self.assertFalse((destination / "unexpected.csv").exists())
+
     def fixture(self, root):
         out = root / "results"
         csv_write(

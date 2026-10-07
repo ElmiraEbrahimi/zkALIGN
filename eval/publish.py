@@ -10,6 +10,33 @@ from eval.data import ROOT, DATASETS, save
 from eval.validate import validate
 from eval.report import report
 
+PUBLISHED_FILES = {
+    "README.md",
+    "environment.json",
+    "performance_environment.json",
+    "evaluation_results.tex",
+    "evaluation_tables.tex",
+    "evaluation_figures.tex",
+    "artifact_sizes.csv",
+    "datasets.csv",
+    "integrity.csv",
+    "measurements.csv",
+    "overhead.csv",
+    "performance_summary.csv",
+    "repeated_setup.csv",
+    "repeated_timings.csv",
+    "scal_capacity.csv",
+    "scal_length.csv",
+    "scal_model.csv",
+    "scal_population.csv",
+    "scal_population_proofs.csv",
+    "setup_summary.csv",
+    "thread_scaling.csv",
+    "uncertified_cases.csv",
+    "utility_cases.csv",
+    "utility_summary.csv",
+}
+
 
 def check_experiments(root):
     results = Path(root) / "results"
@@ -71,8 +98,11 @@ def publish(root, destination):
     destination.mkdir(parents=True, exist_ok=True)
     results = root / "results"
     for p in sorted(results.iterdir()):
-        if p.is_file() and p.suffix in {".csv", ".json", ".tex", ".md"}:
-            shutil.copy2(p, destination / p.name)
+        if p.is_file() and p.name in PUBLISHED_FILES:
+            if p.suffix == ".csv":
+                (destination / p.name).write_text(p.read_text())
+            else:
+                shutil.copy2(p, destination / p.name)
     for p in sorted((results / "figures").glob("*.pdf")):
         target = destination / "figures" / p.name
         target.parent.mkdir(parents=True, exist_ok=True)

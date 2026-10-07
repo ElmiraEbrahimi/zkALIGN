@@ -23,7 +23,7 @@ def csv_write(path, rows):
     fields = list(dict.fromkeys(k for row in rows for k in row))
     pending = path.with_name(path.name + ".pending")
     with pending.open("w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
+        w = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
     os.replace(pending, path)
