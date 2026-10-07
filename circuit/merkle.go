@@ -23,6 +23,23 @@ type circuitMerkleProof struct {
 	Siblings [MerkleTreeDepth]*big.Int
 }
 
+// RootForAuditCases shares the exact witness tree construction. Callers still
+// use AuditManifest.Validate to enforce contiguous indices and uniqueness.
+func RootForAuditCases(cases []AuditCase) (string, error) {
+	leaves := make(map[uint32]*big.Int, len(cases))
+	for _, c := range cases {
+		value, err := canonicalField(c.Commitment)
+		if err != nil {
+			return "", err
+		}
+		if _, exists := leaves[c.Index]; exists {
+			return "", fmt.Errorf("duplicate index")
+		}
+		leaves[c.Index] = circuitMerkleLeaf(c.Index, value)
+	}
+	return buildCircuitMerkleProof(leaves, 0).Root.String(), nil
+}
+
 func circuitMerkleLeaf(index uint32, commitment *big.Int) *big.Int {
 	return hashFieldElements(big.NewInt(DomainMerkleLeaf), new(big.Int).SetUint64(uint64(index)), commitment)
 }

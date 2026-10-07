@@ -78,6 +78,8 @@ def evaluate(folder, thresholds=(1,), solve_thresholds=(0,2,3)):
                     # An execution failure/timeout is not an expected unsatisfied constraint.
                     expected_rejection=r.get("error","").startswith("constraint #") or "constraint is not satisfied" in r.get("error","")
                     row["reason"]="constraint_satisfied" if solved else ("constraint_rejected" if expected_rejection else "solver_error")
+                    if solved != row["reference_ok"] and row["reason"]!="solver_error":
+                        row["reason"]="oracle_disagreement_error"
                     if row["reason"]=="solver_error":row["error"]=r.get("error","")
             rows.append(row);save(cache,rows)
             print(name,k,c["index"],row["reason"],flush=True)
@@ -105,13 +107,15 @@ def collect(data,out):
     for name,k,mode in sorted(set((r["dataset"],r["K"],r["mode"]) for r in rows)):
         group=[r for r in rows if (r["dataset"],r["K"],r["mode"])==(name,k,mode)]
         total=next(d["population"] for d in datasets if d["dataset"]==name)
+        population=json.loads((data/name/"cases.json").read_text())
+        qualified=sum(c["cost"] is not None and c["cost"]<=k for c in population)
         summary.append({"dataset":name,"K":k,"mode":mode,"N":total,"processed":len(group),
-             "reference_qualified":sum(r["reference_ok"] for r in group),
+             "complete":len(group)==total,"reference_qualified":qualified,
              "certified":sum(r["certified"] for r in group) if mode=="groth16" else "",
              "false_certified":sum(r["certified"] and not r["reference_ok"] for r in group),
              "missed_capacity":sum(r["reason"]=="capacity" and r["reference_ok"] for r in group),
              "errors":sum(r["reason"].endswith("_error") for r in group),
-             "reference_share":sum(r["reference_ok"] for r in group)/total,
+             "reference_share":qualified/total,
              "certified_share":sum(r["certified"] for r in group)/total if mode=="groth16" else ""})
     csv_write(out/"datasets.csv",datasets);csv_write(out/"utility_cases.csv",rows)
     csv_write(out/"utility_summary.csv",summary);csv_write(out/"measurements.csv",measurements)
@@ -141,4 +145,3 @@ def main():
     print(json.dumps(collect(args.root/"data",out),indent=2))
 
 if __name__=="__main__":main()
-
