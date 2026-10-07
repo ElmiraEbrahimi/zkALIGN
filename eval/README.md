@@ -2,8 +2,9 @@
 
 This directory implements the evaluation, not batching, recursion, or a private
 model. Each public model/capacity configuration is compiled and set up separately.
-The legacy Sepsis command remains available. Raw logs, witnesses and keys are
-stored in ignored `outputs/evaluation/`; only compact measurements are published.
+The legacy Sepsis command remains available. Raw logs are cached under ignored
+`datasets/raw/evaluation/`; witnesses and keys stay under ignored
+`outputs/evaluation/`. Only compact research outputs are published.
 
 ## Staged development
 
@@ -111,6 +112,11 @@ committed, including alignment timeouts or above-threshold cases. A cohort resul
 is **not** a certification of the complete source dataset. Sepsis uses a
 384-move evaluation configuration; the legacy CLI's default remains 64.
 
+Use `make eval`, not the legacy `make pre-zkp`, to reproduce the paper results.
+The older healthcare demo uses PM4Py's high-level default search costs.
+`eval.data.align` explicitly uses the circuit's 0/1 policy and bypasses the
+fitness wrapper. Its oracle is tested against independent small-product search.
+
 `eval.publish` checks experiment completeness and exports compact results to
 `eval/results/`. It includes public-dataset splits/models for reproducibility,
 but never private witness files, salts, or proving/verification keys. The larger
@@ -131,6 +137,12 @@ population experiments instead verify genuinely distinct certificates.
   and the operating system's file cache are not attributed to the Go worker.
 - `overhead.csv` pairs plaintext alignment, witness and proving for the same
   selected case/repetition. Setup is reported separately, not charged per trace.
+- Repeated performance samples cover selected short, median and long alignments,
+  plus Sepsis AG/NGA. They are not an estimate weighted by the source log's case
+  frequencies. `thread_scaling.csv` reports both Go thread settings.
+- `fig_trace_length.pdf` uses all certified Sepsis cases from the functional
+  run. Those timings are observational; use the separate repeated timings for
+  the primary performance results.
 - Large-N root tests use synthetic distinct public commitments. They are not
   claimed to verify N distinct proofs. Real full-cohort audit verification is
   recorded by the `audit-k1` worker on each dataset.
