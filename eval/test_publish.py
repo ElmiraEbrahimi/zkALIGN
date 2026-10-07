@@ -22,7 +22,14 @@ class PublicationTests(unittest.TestCase):
                 )
             destination = Path(tmp) / "published"
             with (
-                patch("eval.publish.validate"),
+                patch(
+                    "eval.publish.validate",
+                    return_value=[
+                        {"K": 1, "mode": "groth16"},
+                        {"K": 2, "mode": "groth16"},
+                        {"K": 0, "mode": "solver"},
+                    ],
+                ),
                 patch("eval.publish.check_experiments"),
                 patch("eval.publish.report"),
             ):
@@ -31,6 +38,11 @@ class PublicationTests(unittest.TestCase):
                 (destination / "utility_cases.csv").read_bytes(), b"index\n0\n"
             )
             self.assertFalse((destination / "unexpected.csv").exists())
+            import json
+
+            provenance = json.loads((destination / "provenance.json").read_text())
+            self.assertEqual(provenance["real_proof_thresholds"], [1, 2])
+            self.assertEqual(provenance["solver_only_thresholds"], [0])
 
     def fixture(self, root):
         out = root / "results"
