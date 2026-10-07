@@ -28,6 +28,7 @@ eval-scalability:
 	PYTHONPATH=src .venv/bin/python -m eval.validate
 	go build -o build/zkalign-eval ./cmd/zkalign-eval
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode repeats
+	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode setup-repeats
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode capacity
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode models
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode population

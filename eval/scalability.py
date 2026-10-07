@@ -6,6 +6,9 @@ import json
 import secrets
 import os
 import sys
+import platform
+import subprocess
+import psutil
 from pathlib import Path
 from eval.data import FIELD, ROOT, save
 from eval.measure import stage, run_worker
@@ -207,6 +210,32 @@ def capacities(root, bounds=(32, 64, 128, 256, 384), repeat=3):
 
 
 def repeats(root, repeat=5):
+    save(
+        Path(root) / "results/performance_environment.json",
+        {
+            "platform": platform.platform(),
+            "python": sys.version,
+            "ram_bytes": psutil.virtual_memory().total,
+            "cpus": os.cpu_count(),
+            "cpu_model": (
+                subprocess.check_output(
+                    ["sysctl", "-n", "machdep.cpu.brand_string"], text=True
+                ).strip()
+                if sys.platform == "darwin"
+                else platform.processor()
+            ),
+            "git_revision": subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+            ).strip(),
+            "go_modules": subprocess.check_output(
+                ["go", "list", "-m", "all"], cwd=ROOT, text=True
+            ).splitlines(),
+            "python_packages": subprocess.check_output(
+                [sys.executable, "-m", "pip", "freeze"], text=True
+            ).splitlines(),
+            "cache_note": "Fresh processes; operating-system filesystem caches are not flushed.",
+        },
+    )
     rows = []
     for name in ("bpic13cp", "rtfm", "hospital", "sepsis"):
         folder = Path(root) / "data" / name
@@ -288,6 +317,33 @@ def repeats(root, repeat=5):
         print("timing repeats", name, "complete", flush=True)
 
 
+def setup_repeats(root, repeat=5):
+    rows = []
+    for name in ("bpic13cp", "rtfm", "hospital", "sepsis"):
+        cfg = json.loads((Path(root) / "data" / name / "config.json").read_text())
+        for i in range(repeat):
+            folder = Path(root) / "setup-repeats" / name / str(i)
+            save(folder / "config.json", cfg)
+            for phase in ("compile", "setup"):
+                r = stage(BINARY, folder, phase, tag=phase)
+                require(r)
+                rows.append(
+                    {
+                        "dataset": name,
+                        "repeat": i,
+                        "stage": phase,
+                        **{
+                            k: v
+                            for k, v in r.items()
+                            if not isinstance(v, (dict, list))
+                        },
+                        **r.get("bytes", {}),
+                    }
+                )
+            csv_write(Path(root) / "results/repeated_setup.csv", rows)
+        print("setup repeats", name, "complete", flush=True)
+
+
 def population(root, repeat=3):
     rows = []
     for n in (100, 1000, 10000, 100000):
@@ -335,7 +391,14 @@ if __name__ == "__main__":
     p.add_argument("--root", type=Path, default=ROOT / "outputs/evaluation")
     p.add_argument(
         "--mode",
-        choices=["models", "capacity", "repeats", "population", "integrity"],
+        choices=[
+            "models",
+            "capacity",
+            "repeats",
+            "setup-repeats",
+            "population",
+            "integrity",
+        ],
         required=True,
     )
     p.add_argument("--repeat", type=int)
@@ -349,5 +412,7 @@ if __name__ == "__main__":
         repeats(a.root, a.repeat or 5)
     elif a.mode == "population":
         population(a.root, a.repeat or 3)
+    elif a.mode == "setup-repeats":
+        setup_repeats(a.root, a.repeat or 5)
     else:
         integrity_all(a.root)
