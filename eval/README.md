@@ -39,3 +39,98 @@ Reference revisions inspected
 Baseline before this work: `go test ./...` passed; Python unittest suite passed
 12 tests. Existing application MiMC domains and audit v4 are preserved. Production
 setup trust and independently authenticated roots remain deployment requirements.
+
+## Commands
+
+Install evaluation dependencies in the existing project environment:
+
+```sh
+.venv/bin/python -m pip install '.[evaluation]'
+make eval-test
+make eval
+```
+
+`make eval` runs sequentially: tests, four real cohorts, repeated stage timings,
+capacity study, controlled synthetic models, root-only population scaling,
+integrity checks, then reports. It can take hours. It does not commit, push, or
+modify the manuscript. Do not run other CPU-heavy experiments concurrently when
+collecting publication timings.
+
+Individual steps:
+
+```sh
+make eval-core
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode repeats
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode capacity
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode models
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode population
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode integrity
+make eval-report
+```
+
+The main run uses real proofs at K=1 and separate solver sensitivity checks at
+K=0,2,3. For real proofs at all four thresholds, use `python -m eval.run
+--thresholds 0 1 2 3 --solve-thresholds` with `PYTHONPATH=src` and the project
+Python. A solver result is never added to the audit counter. The core runner saves
+each completed case and resumes it; complete threshold runs also execute the
+actual auditor over the saved certificates.
+
+## Directory map and outputs
+
+- `eval/data.py`: source retrieval, 80/20 case split, fixed random population,
+  training-only Inductive Miner (noise 0.2), explicit unit-cost A* and replay.
+- `eval/test_data.py`: independent Dijkstra reference on 200 tiny examples.
+- `circuit/config*.go`: fixed public configuration; shared original constraints.
+- `cmd/zkalign-eval/`: one operation per worker process, reusable serialized keys,
+  public-context verification, integrity and root-reconstruction experiments.
+- `eval/measure.py`: process-local peaks, sampling and 20 GiB/600 s worker guards.
+- `eval/scalability.py`: model/capacity studies, paired timing repeats, population
+  root reconstruction and invalid-input experiments.
+- `eval/report.py`: CSV summaries, vector PDFs, a LaTeX section fragment and a
+  source-indexed results README. Incomplete cohorts are not plotted as complete.
+
+Artifacts under `outputs/evaluation/`:
+
+```text
+data/<dataset>/       frozen split, model, config, private cases, keys, proofs
+  measurements/      raw JSON, stdout and stderr for every worker
+capacity/<bound>/    same Sepsis model and AG witness at different capacities
+scalability/<family>-<size>/  controlled synthetic fixed-capacity models
+population/         fresh-process root-only measurements
+results/            CSVs, environment.json, README.md, evaluation_results.tex
+  figures/          six vector-PDF plots when their measurements are available
+```
+
+The four cohorts have at most 300 held-out cases each. Every cohort member is
+committed, including alignment timeouts or above-threshold cases. A cohort result
+is **not** a certification of the complete source dataset. Sepsis uses a
+384-move evaluation configuration; the legacy CLI's default remains 64.
+
+## Interpretation and limits
+
+- `operation_seconds` is a monotonic wall-clock measurement around the named
+  operation. `worker_seconds` includes startup, artifact loading and serialization.
+- `process_peak_rss_bytes` is the OS high-water RSS of that one worker, not a
+  difference of cumulative peaks. `sampled_operation_peak_rss_bytes` is absolute
+  RSS observed during the operation; it is null when no sample hit a short stage.
+- `witness` is `frontend.NewWitness` input encoding. The `solve` stage measures
+  constraints separately; Groth16 proving also solves them internally. Do not
+  add a diagnostic solver time to proving and call that the prover total.
+- Peak memory includes required loaded keys/constraints. Python parent memory
+  and the operating system's file cache are not attributed to the Go worker.
+- `overhead.csv` pairs plaintext alignment, witness and proving for the same
+  selected case/repetition. Setup is reported separately, not charged per trace.
+- Large-N root tests use synthetic distinct public commitments. They are not
+  claimed to verify N distinct proofs. Real full-cohort audit verification is
+  recorded by the `audit-k1` worker on each dataset.
+- Synthetic nets are constructed directly as ordinary safe nets. The oracle
+  tests cover small control-flow examples; generated real nets come from process
+  trees. We do not claim an exhaustive reachability exploration of large nets.
+- Salts and setup randomness are fresh. Seed 42 applies to data selection only.
+  `sources.lock.json` contains project-local MiMC fingerprints of the compressed
+  publisher files. Source metadata and frozen split files preserve provenance.
+- Raw research case CSVs include reference costs. They are not the public audit
+  interface. Actual proof bundles contain only commitment, proof and context hash.
+- An expected rejection in a solver test is not a failed benchmark. Timeouts,
+  capacity failures, oracle disagreements and unexpected verification errors
+  are recorded distinctly; they must not be removed to improve the result.

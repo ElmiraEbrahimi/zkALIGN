@@ -19,6 +19,19 @@ func TestConfiguredCommitmentMatchesLegacy(t *testing.T) {
 		t.Fatal("hash encoding changed")
 	}
 }
+
+func TestConfiguredCommitmentMatchesPythonFiveSlots(t *testing.T) {
+	cfg := SepsisConfig()
+	cfg.TraceCapacity = 5
+	c, err := ConfiguredCommitment(cfg, []int{1, 2, 3}, big.NewInt(42))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// src/zkalign/mimc.hash_fields(domain,3,1,2,3,0,0,42).
+	if c.String() != "4177346376733737171897391821490142380076936110597811744261618650679177311260" {
+		t.Fatal("cross-language commitment mismatch")
+	}
+}
 func TestConfiguredLoopAndPopulation(t *testing.T) {
 	cfg := &ModelConfig{ActivityCount: 2, TraceCapacity: 4, AlignmentCapacity: 5,
 		Initial: []int{1, 0}, Final: []int{0, 1}, Labels: []int{1, 2}, ModelCosts: []int{1, 1},

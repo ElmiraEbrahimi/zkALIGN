@@ -70,6 +70,13 @@ def download(name):
         subprocess.run(["curl", "--fail", "-L", "--retry", "3", file["download_url"], "-o", str(path)], check=True)
     if path.stat().st_size != file["size"]:
         raise ValueError("dataset download size mismatch")
+    # Project-local MiMC pins, not a claim that the publisher uses MiMC.
+    binary=ROOT/"build/zkalign-eval"
+    if not binary.exists():
+        subprocess.run(["go","build","-o",str(binary),"./cmd/zkalign-eval"],cwd=ROOT,check=True)
+    actual=json.loads(subprocess.check_output([str(binary),"-stage","hash","-input",str(path)],text=True))["details"]
+    expected=json.loads((ROOT/"eval/sources.lock.json").read_text())[name]
+    if actual!=expected:raise ValueError("dataset MiMC fingerprint differs from pinned source")
     return path, meta
 
 def prepare(name, out, limit=300, seed=42, timeout=120):
