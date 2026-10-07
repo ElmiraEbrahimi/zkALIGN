@@ -35,8 +35,8 @@ func integrity(dir string, cfg *circuit.ModelConfig) ([]integrityResult, error) 
 	}
 	sort.Strings(files)
 	rand.New(rand.NewSource(42)).Shuffle(len(files), func(i, j int) { files[i], files[j] = files[j], files[i] })
-	operators := []string{"valid_control", "trace_change", "trace_remove", "trace_swap", "path_change", "skip_consumed_event", "invalid_transition", "disabled_transition",
-		"wrong_sync_label", "truncate", "wrong_cost", "above_threshold", "bad_padding", "bad_length", "bad_move_type", "bad_index"}
+	operators := []string{"valid_control", "trace_change", "trace_add", "trace_remove", "trace_swap", "path_change", "skip_consumed_event", "reorder_consuming_rows", "invalid_transition", "disabled_transition",
+		"wrong_sync_label", "truncate", "wrong_cost", "understated_cost", "above_threshold", "bad_padding", "bad_length", "bad_move_type", "bad_index"}
 	rows := make([]integrityResult, len(operators))
 	for i, name := range operators {
 		expect := "reject"
@@ -71,6 +71,13 @@ func integrity(dir string, cfg *circuit.ModelConfig) ([]integrityResult, error) 
 				} else {
 					a.TraceEvents[0] = c.Events[0]%cfg.ActivityCount + 1
 				}
+			case "trace_add":
+				if len(c.Events) >= cfg.TraceCapacity {
+					applicable = false
+				} else {
+					a.TraceEvents[len(c.Events)] = 1
+					a.TraceLength = len(c.Events) + 1
+				}
 			case "trace_remove":
 				if len(c.Events) == 0 {
 					applicable = false
@@ -92,6 +99,26 @@ func integrity(dir string, cfg *circuit.ModelConfig) ([]integrityResult, error) 
 					applicable = false
 				} else {
 					a.TraceEvents[0], a.TraceEvents[j] = a.TraceEvents[j], a.TraceEvents[0]
+				}
+			case "reorder_consuming_rows":
+				first, second := -1, -1
+				for n, row := range c.Moves {
+					if row.Type != 1 && row.Type != 2 {
+						continue
+					}
+					if first < 0 {
+						first = n
+					} else if row.Activity != c.Moves[first].Activity {
+						second = n
+						break
+					}
+				}
+				if second < 0 {
+					applicable = false
+				} else {
+					a.AlignmentMoveTypes[first], a.AlignmentMoveTypes[second] = a.AlignmentMoveTypes[second], a.AlignmentMoveTypes[first]
+					a.AlignmentActivities[first], a.AlignmentActivities[second] = a.AlignmentActivities[second], a.AlignmentActivities[first]
+					a.ModelTransitionIDs[first], a.ModelTransitionIDs[second] = a.ModelTransitionIDs[second], a.ModelTransitionIDs[first]
 				}
 			case "disabled_transition":
 				j := -1
@@ -169,6 +196,13 @@ func integrity(dir string, cfg *circuit.ModelConfig) ([]integrityResult, error) 
 				}
 			case "wrong_cost":
 				a.AlignmentCost = *c.Cost + 1
+			case "understated_cost":
+				if *c.Cost == 0 {
+					applicable = false
+				} else {
+					a.AlignmentCost = *c.Cost - 1
+					a.CostThreshold = *c.Cost - 1
+				}
 			case "above_threshold":
 				if *c.Cost == 0 {
 					applicable = false
