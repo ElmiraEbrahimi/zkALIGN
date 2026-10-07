@@ -1,9 +1,11 @@
 {
-  "source_revision": "094370d833cb8752cbaac8ac7891c956b42b21ad",
+  "source_revision": "5a366c63ee876fe8f01b2d66742aec49b5a05a57",
   "measurement_root": "/Users/elmiraebrahimi/Documents/proccess mining-m1/zkALIGN/outputs/evaluation",
   "scope": "Research outputs on fixed held-out cohorts, not full source-log certification.",
   "private_artifacts_included": false,
-  "real_proof_threshold": 1,
+  "real_proof_thresholds": [
+    1
+  ],
   "solver_only_thresholds": [
     0,
     2,
