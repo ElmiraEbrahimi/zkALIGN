@@ -21,10 +21,12 @@ def csv_write(path, rows):
     if not rows:
         return
     fields = list(dict.fromkeys(k for row in rows for k in row))
-    with path.open("w", newline="") as f:
+    pending = path.with_name(path.name + ".pending")
+    with pending.open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
+    os.replace(pending, path)
 
 
 def require(result):

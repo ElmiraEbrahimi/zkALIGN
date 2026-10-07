@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import argparse
+import os
 import json
 import random
 import secrets
@@ -32,7 +33,9 @@ FIELD = 218882428718392752222464057452572750885483644004160343436982041865758084
 def save(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, indent=2, default=str) + "\n")
+    pending = path.with_name(path.name + ".pending")
+    pending.write_text(json.dumps(value, indent=2, default=str) + "\n")
+    os.replace(pending, path)
 
 
 def align(trace, net, initial, final, timeout=120):
