@@ -32,6 +32,7 @@ eval-scalability:
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode capacity
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode models
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode population
+	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode population-proofs
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode integrity
 
 eval-report:
