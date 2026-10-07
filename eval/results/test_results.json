@@ -1,0 +1,31 @@
+{
+  "go_test_all": {
+    "command": "go test ./... -count=1",
+    "status": "passed"
+  },
+  "python_protocol_tests": {
+    "command": "PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v",
+    "tests": 12,
+    "status": "passed"
+  },
+  "python_evaluation_tests": {
+    "command": "PYTHONPATH=src .venv/bin/python -m unittest discover -s eval -p 'test_*.py' -v",
+    "tests": 9,
+    "status": "passed",
+    "independent_oracle_examples": 200,
+    "synthetic_model_replays": 24
+  },
+  "experiment_completeness": "passed",
+  "main_cohort_cases": 1107,
+  "real_certificates_at_K1": 1087,
+  "main_cohort_capacity_exclusions": 0,
+  "main_cohort_unexpected_errors": 0,
+  "invalid_input_attempts": 3263,
+  "invalid_input_unexpected_acceptances": 0,
+  "positive_control_attempts": 204,
+  "duplicate_count_invariant_checks": 4,
+  "inapplicable_mutations_reported": 373,
+  "pdf_figures_rendered_and_visually_checked": 8,
+  "memory_isolation_regression": "large then small child-process peaks remain independent",
+  "note": "Implementation tests and measurements do not replace a cryptographic security proof."
+}
