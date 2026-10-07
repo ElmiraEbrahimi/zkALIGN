@@ -10,6 +10,7 @@ import psutil
 
 def run_worker(command, result, *, timeout=600, interval=0.005, env=None, memory_limit=20*1024**3):
     result=Path(result);result.parent.mkdir(parents=True,exist_ok=True)
+    if result.exists():result.unlink()
     # Each measurement has its own logs. File redirection avoids pipe-buffer deadlocks.
     start=time.perf_counter(); samples=[]; reason=None; usage=None
     with result.with_suffix(".stdout.log").open("w") as out, result.with_suffix(".stderr.log").open("w") as err:
@@ -58,4 +59,3 @@ def stage(binary,folder,name,*,case=None,k=1,prefix="case",tag=None,threads=None
     data=run_worker(cmd,result,env=env,timeout=timeout)
     data["measurement_file"]=str(result)
     return data
-

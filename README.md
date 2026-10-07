@@ -385,3 +385,11 @@ cost exists**. It does not prove that the supplied alignment is globally
 optimal. PM4Py/A* can find an optimal candidate outside the circuit, but the
 base circuit does not prove that A* was run correctly. Global optimality needs a
 separate zkVM execution proof or shortest-path optimality certificate.
+# Reproducible multi-log evaluation
+
+The staged evaluation implementation is documented in [eval/README.md](eval/README.md).
+Use `make eval-test` for regression tests and `make eval` for the full sequential
+evaluation. Results are written to `outputs/evaluation/results/`. Each stage and
+repeat runs in a fresh process to isolate memory peaks. The original single-trace
+Sepsis commands and their 64-move default remain available; evaluation uses a
+separate fixed configuration per public model and capacity.

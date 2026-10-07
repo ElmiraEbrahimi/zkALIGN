@@ -43,7 +43,7 @@ def report(root):
         if not repeat.empty:
             timing=timing[timing["threads"].astype(str)=="default"]
         for (dataset,stage),group in timing.groupby(["dataset","stage"]):
-            if stage not in ("compile","setup","witness","prove","verify"):continue
+            if stage not in ("compile","setup","alignment","witness","prove","verify"):continue
             for metric in ("operation_seconds","worker_seconds","process_peak_rss_bytes","sampled_operation_peak_rss_bytes"):
                 vals=pd.to_numeric(group[metric],errors="coerce").dropna()
                 if len(vals)==0:continue
@@ -52,6 +52,20 @@ def report(root):
                     "median":vals.median(),"p95":vals.quantile(.95),"min":vals.min(),"max":vals.max(),
                     "source":"repeated_timings.csv" if not repeat.empty else "measurements.csv"})
         csv_write(results/"performance_summary.csv",aggregates)
+    if not repeat.empty:
+        pairs=[]
+        default=repeat[repeat["threads"].astype(str)=="default"]
+        for (dataset,index,run),group in default.groupby(["dataset","index","repeat"]):
+            g=group.set_index("stage")
+            if not all(s in g.index for s in ("alignment","witness","prove","verify")):continue
+            plain=float(g.loc["alignment","operation_seconds"])
+            total=plain+float(g.loc["witness","operation_seconds"])+float(g.loc["prove","operation_seconds"])
+            cold=sum(float(g.loc[s,"worker_seconds"]) for s in ("alignment","witness","prove"))
+            pairs.append({"dataset":dataset,"index":index,"repeat":run,
+                "plaintext_alignment_seconds":plain,"prover_operation_seconds":total,
+                "operation_overhead":total/plain if plain else None,"cold_worker_seconds":cold,
+                "verifier_seconds":float(g.loc["verify","operation_seconds"])})
+        csv_write(results/"overhead.csv",pairs)
     if not utility.empty:
         u=utility[(utility["mode"]=="groth16")&(utility["K"]==1)&(utility["processed"]==utility["N"])]
         if len(u):
@@ -141,4 +155,3 @@ def report(root):
 if __name__=="__main__":
     p=argparse.ArgumentParser();p.add_argument("--root",type=Path,default=ROOT/"outputs/evaluation")
     print(report(p.parse_args().root))
-
