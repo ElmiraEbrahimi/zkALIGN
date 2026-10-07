@@ -52,7 +52,7 @@ make eval
 
 `make eval` runs sequentially: tests, four real cohorts, repeated stage timings,
 capacity study, controlled synthetic models, root-only population scaling,
-integrity checks, then reports. It can take hours. It does not commit, push, or
+distinct-proof population audits, integrity checks, then reports. It can take hours. It does not commit, push, or
 modify the manuscript. Do not run other CPU-heavy experiments concurrently when
 collecting publication timings.
 
@@ -61,11 +61,14 @@ Individual steps:
 ```sh
 make eval-core
 PYTHONPATH=src .venv/bin/python -m eval.scalability --mode repeats
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode setup-repeats
 PYTHONPATH=src .venv/bin/python -m eval.scalability --mode capacity
 PYTHONPATH=src .venv/bin/python -m eval.scalability --mode models
 PYTHONPATH=src .venv/bin/python -m eval.scalability --mode population
+PYTHONPATH=src .venv/bin/python -m eval.scalability --mode population-proofs
 PYTHONPATH=src .venv/bin/python -m eval.scalability --mode integrity
 make eval-report
+PYTHONPATH=src .venv/bin/python -m eval.publish
 ```
 
 The main run uses real proofs at K=1 and separate solver sensitivity checks at
@@ -97,14 +100,22 @@ data/<dataset>/       frozen split, model, config, private cases, keys, proofs
 capacity/<bound>/    same Sepsis model and AG witness at different capacities
 scalability/<family>-<size>/  controlled synthetic fixed-capacity models
 population/         fresh-process root-only measurements
+population-audits/  actual distinct proofs for a fixed 100-case cohort
+setup-repeats/      separate setup keys for five repetitions per model
 results/            CSVs, environment.json, README.md, evaluation_results.tex
-  figures/          six vector-PDF plots when their measurements are available
+  figures/          eight vector-PDF plots when their measurements are available
 ```
 
 The four cohorts have at most 300 held-out cases each. Every cohort member is
 committed, including alignment timeouts or above-threshold cases. A cohort result
 is **not** a certification of the complete source dataset. Sepsis uses a
 384-move evaluation configuration; the legacy CLI's default remains 64.
+
+`eval.publish` checks experiment completeness and exports compact results to
+`eval/results/`. It includes public-dataset splits/models for reproducibility,
+but never private witness files, salts, or proving/verification keys. The larger
+100,000-entry experiment measures root checking only. The 100- and 300-case
+population experiments instead verify genuinely distinct certificates.
 
 ## Interpretation and limits
 
