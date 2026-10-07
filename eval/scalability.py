@@ -12,7 +12,7 @@ import psutil
 from pathlib import Path
 from eval.data import FIELD, ROOT, save
 from eval.measure import stage, run_worker
-from eval.run import BINARY, initialize, require, csv_write
+from eval.run import BINARY, initialize, require, csv_write, evaluate
 
 
 def synthetic(family, n, sigma=128, gamma=256):
@@ -374,6 +374,39 @@ def population(root, repeat=3):
             csv_write(Path(root) / "results/scal_population.csv", rows)
 
 
+def real_population(root):
+    """Measure real distinct-certificate audits, not repeated copies of a proof."""
+    source = Path(root) / "data/rtfm"
+    cases = json.loads((source / "cases.json").read_text())
+    cfg = json.loads((source / "config.json").read_text())
+    rows = []
+    for n in (100, 300):
+        folder = source if n == 300 else Path(root) / "population-audits/rtfm-100"
+        if n == 100:
+            if not (folder / "cases.json").exists():
+                save(folder / "config.json", cfg)
+                save(folder / "cases.json", cases[:n])
+            evaluate(folder, thresholds=(1,), solve_thresholds=())
+        r = stage(BINARY, folder, "audit", k=1, tag="population-audit")
+        require(r)
+        expected = sum(c["cost"] is not None and c["cost"] <= 1 for c in cases[:n])
+        if r["details"]["population"] != n or r["details"]["certified"] != expected:
+            raise ValueError(
+                "distinct-proof population benchmark disagrees with reference"
+            )
+        rows.append(
+            {
+                "N": n,
+                "dataset": "rtfm",
+                "mode": "real_distinct_certificates",
+                **{k: v for k, v in r.items() if not isinstance(v, (dict, list))},
+                "certified": r["details"]["certified"],
+                "required": r["details"]["required"],
+            }
+        )
+        csv_write(Path(root) / "results/scal_population_proofs.csv", rows)
+
+
 def integrity_all(root):
     rows = []
     for name in ("bpic13cp", "rtfm", "hospital", "sepsis"):
@@ -397,6 +430,7 @@ if __name__ == "__main__":
             "repeats",
             "setup-repeats",
             "population",
+            "population-proofs",
             "integrity",
         ],
         required=True,
@@ -412,6 +446,8 @@ if __name__ == "__main__":
         repeats(a.root, a.repeat or 5)
     elif a.mode == "population":
         population(a.root, a.repeat or 3)
+    elif a.mode == "population-proofs":
+        real_population(a.root)
     elif a.mode == "setup-repeats":
         setup_repeats(a.root, a.repeat or 5)
     else:
