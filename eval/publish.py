@@ -92,7 +92,7 @@ def check_experiments(root):
 
 def publish(root, destination):
     root, destination = Path(root), Path(destination)
-    validate(root)
+    summary = validate(root)
     check_experiments(root)
     report(root)
     destination.mkdir(parents=True, exist_ok=True)
@@ -135,8 +135,12 @@ def publish(root, destination):
             "measurement_root": str(root),
             "scope": "Research outputs on fixed held-out cohorts, not full source-log certification.",
             "private_artifacts_included": False,
-            "real_proof_threshold": 1,
-            "solver_only_thresholds": [0, 2, 3],
+            "real_proof_thresholds": sorted(
+                {r["K"] for r in summary if r["mode"] == "groth16"}
+            ),
+            "solver_only_thresholds": sorted(
+                {r["K"] for r in summary if r["mode"] == "solver"}
+            ),
         },
     )
     return destination
