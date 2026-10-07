@@ -11,3 +11,11 @@ circuit/*.vk
 circuit/*.proof
 datasets/raw/
 outputs/
+
+# Generated paper assets stay local; retain numerical evaluation results.
+eval/results/figures/
+eval/results/*.tex
+paper/
+docs/paper-system-overview/
+Claude outputs/
+.DS_Store
