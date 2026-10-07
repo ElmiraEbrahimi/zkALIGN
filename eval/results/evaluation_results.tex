@@ -1,0 +1,33 @@
+% Generated measurements, not a standalone manuscript.
+
+\subsection{Experimental Setup and Datasets}
+
+We evaluate individual trace certificates on four public event logs. Cases are split before discovery and audit populations are fixed before alignment computation. Each evaluation population has its own complete commitment root. Model and capacity configurations are compiled separately.
+
+\subsection{Utility Preservation and Certification Coverage}
+
+The plaintext reference uses zero cost for synchronous and silent model moves and unit cost for log and visible model moves. At $K=1$, certification is measured using actual Groth16 proofs and the auditor's population counter. Results at other thresholds must be identified as solver checks unless real proofs were generated.
+
+For BPI 2013, 293 of 297 cases were certified, compared with 293 qualifying cases in the plaintext reference.
+
+For Billing, 300 of 300 cases were certified, compared with 300 qualifying cases in the plaintext reference.
+
+For Traffic, 299 of 300 cases were certified, compared with 299 qualifying cases in the plaintext reference.
+
+For Sepsis, 195 of 210 cases were certified, compared with 195 qualifying cases in the plaintext reference.
+
+\subsection{Circuit and Audit Integrity}
+
+We distinguish deliberately invalid evidence from legitimate alternative executions. Duplicate submissions must leave the certified count unchanged, and rejected submissions must not prevent a subsequent valid certificate.
+
+Across the four datasets, 3263 deliberately invalid inputs were tested with 0 unexpected outcomes. These are implementation checks, not a substitute for the cryptographic security argument.
+
+\subsection{Performance Evaluation}
+
+Compilation, setup, witness encoding, proving, and verification run in separate operating-system processes. We report per-process peak resident memory and operation wall time separately from complete worker time. Memory sampling uses a nominal interval of 5 milliseconds. Sub-interval stages may have no operation sample, in which case only their process peak is reported. In gnark, witness encoding does not solve the constraints. Proving includes constraint solving.
+
+For BPI 2013, mean proving time was 0.115 s and mean verification time was 0.881 ms. The mean prover-process peak was 119.3 MiB. For Billing, mean proving time was 0.110 s and mean verification time was 0.870 ms. The mean prover-process peak was 125.6 MiB. For Traffic, mean proving time was 0.083 s and mean verification time was 0.865 ms. The mean prover-process peak was 70.4 MiB. For Sepsis, mean proving time was 0.636 s and mean verification time was 0.874 ms. The mean prover-process peak was 1053.2 MiB.
+
+\subsection{Scalability Analysis}
+
+We vary alignment capacity while holding the Sepsis model fixed, and vary the size of controlled sequence, choice, parallel, and loop models at fixed trace and alignment capacities. Root reconstruction for large synthetic rosters is measured separately from verification of distinct real certificates.
