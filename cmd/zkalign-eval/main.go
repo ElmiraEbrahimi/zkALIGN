@@ -82,10 +82,16 @@ func main() {
 	result := flag.String("result", "", "measurement JSON")
 	prefix := flag.String("prefix", "case", "artifact prefix")
 	input := flag.String("input", "", "input file (hash)")
+	population := flag.Int("population", 100, "synthetic roster size for root-only benchmark")
 	flag.Parse()
 	logger.Disable()
 	m := measurement{Stage: *stage, Status: "ok", Bytes: map[string]int64{}, GOMAXPROCS: runtime.GOMAXPROCS(0)}
-	e := run(*stage, *dir, *casePath, *prefix, *input, *k, &m)
+	var e error
+	if *stage == "population-root" {
+		e = populationRoot(*population, &m)
+	} else {
+		e = run(*stage, *dir, *casePath, *prefix, *input, *k, &m)
+	}
 	if e != nil {
 		m.Status = "error"
 		m.Error = e.Error()
@@ -120,6 +126,18 @@ func run(stage, dir, casePath, prefix, input string, k int, m *measurement) erro
 	}
 	cs := groth16.NewCS(ecc.BN254)
 	switch stage {
+	case "integrity":
+		rows, err := integrity(dir, cfg)
+		m.Details = rows
+		if err != nil {
+			return err
+		}
+		for _, r := range rows {
+			if r.Unexpected != 0 {
+				return fmt.Errorf("unexpected integrity outcome: %s", r.Operator)
+			}
+		}
+		return nil
 	case "compile":
 		e = measure(m, func() error {
 			var err error

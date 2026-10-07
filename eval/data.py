@@ -134,7 +134,7 @@ def prepare(name, out, limit=300, seed=42, timeout=120):
     if name=="sepsis": gamma=max(384,gamma)
     cfg=config_from_export(model,sigma,gamma)
     metadata={"dataset":name,"doi":source["doi"],"seed":seed,"requested_limit":limit,
-        "source_cases":df["case:concept:name"].nunique(),"source_events":len(df),
+        "source_cases":int(df["case:concept:name"].nunique()),"source_events":len(df),
         "activities":len(encoding),"population":len(cases),
         "median_trace_length":float(audit.groupby("case:concept:name").size().median()),
         "max_trace_length":sigma,"max_alignment_length":max(len(c["moves"]) for c in cases),
@@ -159,4 +159,3 @@ if __name__=="__main__":
     args=parser.parse_args()
     for name in args.datasets:
         print(json.dumps(prepare(name,args.out,args.limit),default=str),flush=True)
-
