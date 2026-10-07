@@ -64,6 +64,26 @@ def report(root):
     measured = read("measurements.csv")
     repeat = read("repeated_timings.csv")
     repeated_setup = read("repeated_setup.csv")
+    if not measured.empty:
+        size_rows = []
+        for dataset, group in measured.groupby("dataset"):
+            row = {"dataset": dataset}
+            for phase, field in (
+                ("compile", "r1cs"),
+                ("setup", "pk"),
+                ("setup", "vk"),
+                ("prove", "proof"),
+                ("prove", "bundle"),
+            ):
+                if field in group:
+                    values = pd.to_numeric(
+                        group[group.stage == phase][field], errors="coerce"
+                    ).dropna()
+                    if len(values):
+                        row[field + "_min_bytes"] = int(values.min())
+                        row[field + "_max_bytes"] = int(values.max())
+            size_rows.append(row)
+        csv_write(results / "artifact_sizes.csv", size_rows)
     aggregates = []
     timing = repeat if not repeat.empty else measured
     if not timing.empty:
