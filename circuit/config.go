@@ -25,7 +25,15 @@ func SepsisConfig() *ModelConfig {
 	return &ModelConfig{ActivityCount, MaxTraceEvents, MaxAlignmentMoves,
 		append([]int(nil), sepsisInitialMarking[:]...), append([]int(nil), sepsisFinalMarking[:]...),
 		append([]int(nil), sepsisTransitionLabels[:]...), append([]int(nil), sepsisTransitionModelCosts[:]...),
-		sepsisInputTransitionsByPlace, sepsisOutputTransitionsByPlace}
+		copyIncidence(sepsisInputTransitionsByPlace), copyIncidence(sepsisOutputTransitionsByPlace)}
+}
+
+func copyIncidence(source [][]int) [][]int {
+	result := make([][]int, len(source))
+	for i := range source {
+		result[i] = append([]int(nil), source[i]...)
+	}
+	return result
 }
 
 func LoadModelConfig(path string) (*ModelConfig, error) {

@@ -46,7 +46,7 @@ func (c *ConfiguredCircuit) Define(api frontend.API) error {
 	for eventIndex := 0; eventIndex < cfg.TraceCapacity; eventIndex++ {
 		traceHash.Write(c.TraceEvents[eventIndex])
 		// knownActivity becomes 1 exactly when the slot is one of activity IDs
-		// 1..16. Together with isTracePadding, this rejects every other value.
+		// 1..ActivityCount. Together with padding, this rejects other values.
 		knownActivity := frontend.Variable(0)
 		for activityID := 1; activityID <= cfg.ActivityCount; activityID++ {
 			knownActivity = api.Add(knownActivity, api.IsZero(api.Sub(c.TraceEvents[eventIndex], activityID)))
@@ -129,7 +129,7 @@ func (c *ConfiguredCircuit) Define(api frontend.API) error {
 		selectedLabel := frontend.Variable(0)
 		selectedModelMoveCost := frontend.Variable(0)
 		// The transition ID is private. Equality selectors act as a constrained
-		// lookup into the fixed 35-transition public model.
+		// lookup into the fixed public model for this compiled configuration.
 		for transitionOffset := 0; transitionOffset < len(cfg.Labels); transitionOffset++ {
 			transitionID := transitionOffset + 1
 			isSelected := api.IsZero(api.Sub(c.ModelTransitionIDs[moveIndex], transitionID))
@@ -140,7 +140,7 @@ func (c *ConfiguredCircuit) Define(api frontend.API) error {
 		}
 		api.AssertIsEqual(selectedTransitionCount, changesModel)
 		api.AssertIsEqual(api.Mul(api.Sub(1, changesModel), c.ModelTransitionIDs[moveIndex]), 0)
-		// On SYNC, the model transition label must equal the patient event.
+		// On SYNC, the model transition label must equal the trace event.
 		// Silent transitions have label 0, so they cannot be used as SYNC.
 		api.AssertIsEqual(api.Mul(isSynchronous, api.Sub(selectedLabel, c.AlignmentActivities[moveIndex])), 0)
 		api.AssertIsEqual(api.Mul(api.Add(isModelOnly, isPadding), c.AlignmentActivities[moveIndex]), 0)
