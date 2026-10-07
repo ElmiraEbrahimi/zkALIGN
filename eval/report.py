@@ -33,8 +33,10 @@ plt.rcParams.update(
 
 
 def plot_save(fig, path):
+    # Preserve exact one-column physical dimensions, including labels/legends.
+    fig.set_size_inches(12.2 / 2.54, 4.5 / 2.54)
     fig.tight_layout(pad=0.6)
-    fig.savefig(path, bbox_inches="tight")
+    fig.savefig(path)
     plt.close(fig)
 
 
@@ -61,6 +63,10 @@ def report(root):
     datasets = read("datasets.csv")
     utility = read("utility_summary.csv")
     cases = read("utility_cases.csv")
+    if not cases.empty:
+        cases[(cases["mode"] == "groth16") & ~cases.certified.astype(bool)].to_csv(
+            results / "uncertified_cases.csv", index=False
+        )
     measured = read("measurements.csv")
     repeat = read("repeated_timings.csv")
     repeated_setup = read("repeated_setup.csv")
@@ -129,6 +135,23 @@ def report(root):
                 )
         csv_write(results / "performance_summary.csv", aggregates)
     if not repeat.empty:
+        thread_rows = []
+        for (dataset, threads, phase), group in repeat.groupby(
+            ["dataset", "threads", "stage"]
+        ):
+            thread_rows.append(
+                {
+                    "dataset": dataset,
+                    "threads": threads,
+                    "stage": phase,
+                    "samples": len(group),
+                    "mean_operation_seconds": group.operation_seconds.mean(),
+                    "std_operation_seconds": group.operation_seconds.std(),
+                    "mean_process_peak_rss_bytes": group.process_peak_rss_bytes.mean(),
+                    "max_process_peak_rss_bytes": group.process_peak_rss_bytes.max(),
+                }
+            )
+        csv_write(results / "thread_scaling.csv", thread_rows)
         pairs = []
         default = repeat[repeat["threads"].astype(str) == "default"]
         for (dataset, index, run), group in default.groupby(
@@ -218,14 +241,32 @@ def report(root):
             )
             ax.set_xticks(x, [LABELS.get(v, v) for v in u.dataset])
             ax.set_ylabel("Cases (%)")
-            ax.set_ylim(0, 115)
-            ax.legend(loc="upper center", ncol=2, frameon=False)
+            ax.set_ylim(0, 111)
+            for pos, (_, row) in zip(x, u.iterrows()):
+                ax.text(
+                    pos,
+                    100 * max(row.reference_share, row.certified_share) + 2,
+                    f"{int(row.certified)}/{int(row.N)}",
+                    ha="center",
+                    fontsize=7,
+                )
+            ax.legend(
+                loc="upper center", bbox_to_anchor=(0.5, 1.25), ncol=2, frameon=False
+            )
             plot_save(fig, figures / "fig_utility.pdf")
         for _, r in utility.iterrows():
             notes.append(
                 f"- {r.dataset}, K={r.K}, {r['mode']}: processed {r.processed}/{r.N}, reference-qualified {r.reference_qualified}, certified {r.certified}, errors {r.errors}. Source: utility_summary.csv."
             )
     if aggregates:
+        notes += ["", "## Repeated performance samples"]
+        for row in aggregates:
+            if row["metric"] in ("operation_seconds", "process_peak_rss_bytes"):
+                notes.append(
+                    f"- {row['dataset']} {row['stage']} {row['metric']}: "
+                    f"mean {row['mean']:.9g}, SD {row['std']:.9g}, n={row['n']}. "
+                    f"Source: performance_summary.csv / {row['source']}."
+                )
         a = pd.DataFrame(aggregates)
         names = sorted(a.dataset.unique())
         fig, axes = plt.subplots(1, 2, figsize=(4.8, 2.0))
@@ -397,6 +438,12 @@ def report(root):
         notes.append(
             f"- Integrity attempts {int(integrity.attempts.sum())}, unexpected outcomes {int(integrity.unexpected.sum())}, inapplicable mutations {int(integrity.skipped.sum())}. Source: integrity.csv."
         )
+        negatives = integrity[integrity.expected == "reject"]
+        notes.append(
+            f"- Negative integrity attempts {int(negatives.attempts.sum())}, "
+            f"unexpected outcomes {int(negatives.unexpected.sum())}. Valid controls and "
+            "duplicate-count invariants are reported separately in integrity.csv."
+        )
     proof_pop = read("scal_population_proofs.csv")
     if not proof_pop.empty:
         for _, r in proof_pop.iterrows():
@@ -459,6 +506,41 @@ def report(root):
         r"\subsection{Scalability Analysis}",
         r"We vary alignment capacity while holding the Sepsis model fixed, and vary the size of controlled sequence, choice, parallel, and loop models at fixed trace and alignment capacities. Root reconstruction for large synthetic rosters is measured separately from verification of distinct real certificates.",
     ]
+    if not integrity.empty:
+        tex.insert(
+            tex.index(r"\subsection{Performance Evaluation}"),
+            f"Across the four datasets, {int(negatives.attempts.sum())} deliberately invalid inputs were tested with {int(negatives.unexpected.sum())} unexpected outcomes. These are implementation checks, not a substitute for the cryptographic security argument.",
+        )
+    if aggregates and not repeat.empty:
+        performance_text = []
+        for name in sorted(repeat.dataset.unique()):
+            needed = {
+                ("prove", "operation_seconds"),
+                ("verify", "operation_seconds"),
+                ("prove", "process_peak_rss_bytes"),
+            }
+            available = {
+                (r["stage"], r["metric"]) for r in aggregates if r["dataset"] == name
+            }
+            if not needed <= available:
+                continue
+
+            def metric(phase, key):
+                return next(
+                    r
+                    for r in aggregates
+                    if r["dataset"] == name
+                    and r["stage"] == phase
+                    and r["metric"] == key
+                )["mean"]
+
+            performance_text.append(
+                f"For {LABELS[name]}, mean proving time was {metric('prove', 'operation_seconds'):.3f} s "
+                f"and mean verification time was {1000*metric('verify', 'operation_seconds'):.3f} ms. "
+                f"The mean prover-process peak was {metric('prove', 'process_peak_rss_bytes')/1024**2:.1f} MiB."
+            )
+        pos = tex.index(r"\subsection{Scalability Analysis}")
+        tex.insert(pos, " ".join(performance_text))
     (results / "evaluation_results.tex").write_text("\n\n".join(tex) + "\n")
     tables = [
         r"% Requires booktabs. Tables summarize complete measured runs only.",
@@ -476,6 +558,27 @@ def report(root):
             )
     tables += [r"\bottomrule\end{tabular}\end{table}"]
     (results / "evaluation_tables.tex").write_text("\n".join(tables) + "\n")
+    captions = {
+        "fig_utility": "Threshold agreement at $K=1$ on the four frozen held-out cohorts. Plaintext bars count cases whose reference alignment cost is at most the threshold. Certified bars count distinct cases accepted by the auditor using actual proofs. The denominator includes every case in each cohort.",
+        "fig_overhead": "Mean operation time on selected short, median, and long alignments, with five repetitions per selected case. The protected computation includes plaintext alignment, witness encoding, and proving. Setup and artifact loading are excluded from these operation times and recorded separately.",
+        "fig_time_memory": "Mean operation time and mean per-process peak resident memory for witness encoding, proving, and verification on the selected cases. Each stage and repetition runs in a fresh process. Process peaks include loaded artifacts and serialization. Proving includes constraint solving.",
+        "fig_setup_time_memory": "Compilation and setup measured independently in fresh processes, with five repetitions per model. Time refers to the named operation, while resident memory is the peak of the complete worker process.",
+        "fig_model_scalability": "Controlled model scaling for sequence, choice, parallel, and loop structures. Trace capacity is 128 and alignment capacity is 256 for every model. Proving times average three repetitions per model.",
+        "fig_capacity": "Effect of alignment capacity for the fixed Sepsis model and a trace capacity of 185. Coverage counts all held-out traces whose reference alignment fits, regardless of whether its cost meets the audit threshold.",
+        "fig_trace_length": "Observed proving times for certified Sepsis traces at fixed capacities. These are observations from the functional cohort run, not the dedicated repeated performance sample.",
+        "fig_population": "Fresh-process root validation for synthetic rosters of distinct commitments. This experiment measures population-root checking, not verification of an equal number of proofs. Separate experiments verify distinct real certificates for populations of 100 and 300 cases.",
+    }
+    figure_tex = [r"% Requires graphicx. Copy the accompanying figures directory."]
+    for name, caption in captions.items():
+        if (figures / (name + ".pdf")).exists():
+            figure_tex += [
+                r"\begin{figure}[t]\centering",
+                r"\includegraphics[width=\linewidth]{figures/" + name + ".pdf}",
+                r"\caption{" + caption + "}",
+                r"\label{fig:eval-" + name.removeprefix("fig_") + "}",
+                r"\end{figure}",
+            ]
+    (results / "evaluation_figures.tex").write_text("\n".join(figure_tex) + "\n")
     return figures
 
 
