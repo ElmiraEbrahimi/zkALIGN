@@ -1,0 +1,5 @@
+dataset,index,n,measurement_kind,prove_seconds_min,prove_seconds_max,prove_seconds_mean,prove_seconds_sd,prove_seconds_median,case_id,trace_length,alignment_length,roles
+sepsis,1,5,repeated_selected_case,0.613739625,0.647274834,0.6315176418,0.013274819619915203,0.62846375,AB,8,18,short
+sepsis,3,5,repeated_selected_case,0.608660209,0.685777875,0.630668275,0.03160640869311785,0.619750625,AG,5,18,AG
+sepsis,78,5,repeated_selected_case,0.622309209,0.655675542,0.6378406836,0.012136991238646231,0.636194334,JA,14,28,median
+sepsis,111,5,repeated_selected_case,0.638472375,0.651594583,0.6459133998000001,0.006447922774583941,0.649607541,NGA,185,369,long+NGA

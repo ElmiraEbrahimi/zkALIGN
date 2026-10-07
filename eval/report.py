@@ -1,16 +1,17 @@
 """Generate paper artifacts from measured CSVs; never invent missing results."""
 
 import argparse
-import json
 from pathlib import Path
-import numpy as np
 import pandas as pd
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from eval.data import ROOT
 from eval.run import csv_write
+from eval.summaries import (
+    enrich_utility,
+    overhead_summary,
+    model_summary,
+    trace_summary,
+)
+from eval.plotting.draw import generate_figures
 
 LABELS = {
     "bpic13cp": "BPI 2013",
@@ -18,26 +19,6 @@ LABELS = {
     "hospital": "Billing",
     "sepsis": "Sepsis",
 }
-plt.rcParams.update(
-    {
-        "font.family": "serif",
-        "font.size": 8,
-        "axes.labelsize": 8,
-        "legend.fontsize": 7,
-        "xtick.labelsize": 7,
-        "ytick.labelsize": 7,
-        "pdf.fonttype": 42,
-        "ps.fonttype": 42,
-    }
-)
-
-
-def plot_save(fig, path):
-    # Preserve exact one-column physical dimensions, including labels/legends.
-    fig.set_size_inches(12.2 / 2.54, 4.5 / 2.54)
-    fig.tight_layout(pad=0.6)
-    fig.savefig(path)
-    plt.close(fig)
 
 
 def report(root):
@@ -63,6 +44,9 @@ def report(root):
     datasets = read("datasets.csv")
     utility = read("utility_summary.csv")
     cases = read("utility_cases.csv")
+    if not cases.empty and not utility.empty:
+        utility = enrich_utility(utility, cases)
+        utility.to_csv(results / "utility_summary.csv", index=False)
     if not cases.empty:
         cases[(cases["mode"] == "groth16") & ~cases.certified.astype(bool)].to_csv(
             results / "uncertified_cases.csv", index=False
@@ -185,78 +169,20 @@ def report(root):
                 }
             )
         csv_write(results / "overhead.csv", pairs)
-        if pairs:
-            grouped = pd.DataFrame(pairs).groupby("dataset").mean(numeric_only=True)
-            names = list(grouped.index)
-            fig, ax = plt.subplots(figsize=(4.8, 1.9))
-            for offset, column, label, hatch in (
-                (-0.18, "plaintext_alignment_seconds", "Plaintext alignment", ""),
-                (0.18, "prover_operation_seconds", "Alignment + witness + proof", "//"),
-            ):
-                ax.bar(
-                    np.arange(len(names)) + offset,
-                    grouped[column],
-                    0.35,
-                    label=label,
-                    color="white",
-                    edgecolor="black",
-                    hatch=hatch,
-                )
-            ax.set_xticks(np.arange(len(names)), [LABELS[n] for n in names])
-            ax.set_ylabel("Operation time (s)")
-            ax.set_yscale("log")
-            ax.legend(
-                fontsize=7,
-                loc="upper center",
-                bbox_to_anchor=(0.5, 1.25),
-                ncol=2,
-                frameon=False,
+        if pairs and not cases.empty:
+            overhead_summary(pd.DataFrame(pairs), cases).to_csv(
+                results / "overhead_summary.csv", index=False
             )
-            plot_save(fig, figures / "fig_overhead.pdf")
     if not utility.empty:
-        u = utility[
-            (utility["mode"] == "groth16")
-            & (utility["K"] == 1)
-            & (utility["processed"] == utility["N"])
-        ]
-        if len(u):
-            x = np.arange(len(u))
-            fig, ax = plt.subplots(figsize=(4.8, 1.85))
-            ax.bar(
-                x - 0.18,
-                u.reference_share * 100,
-                0.36,
-                label="Plaintext",
-                color="white",
-                edgecolor="black",
-            )
-            ax.bar(
-                x + 0.18,
-                u.certified_share * 100,
-                0.36,
-                label="Certified",
-                color=".6",
-                edgecolor="black",
-                hatch="//",
-            )
-            ax.set_xticks(x, [LABELS.get(v, v) for v in u.dataset])
-            ax.set_ylabel("Cases (%)")
-            ax.set_ylim(0, 111)
-            for pos, (_, row) in zip(x, u.iterrows()):
-                ax.text(
-                    pos,
-                    100 * max(row.reference_share, row.certified_share) + 2,
-                    f"{int(row.certified)}/{int(row.N)}",
-                    ha="center",
-                    fontsize=7,
-                )
-            ax.legend(
-                loc="upper center", bbox_to_anchor=(0.5, 1.25), ncol=2, frameon=False
-            )
-            plot_save(fig, figures / "fig_utility.pdf")
         for _, r in utility.iterrows():
             notes.append(
-                f"- {r.dataset}, K={r.K}, {r['mode']}: processed {r.processed}/{r.N}, reference-qualified {r.reference_qualified}, certified {r.certified}, errors {r.errors}. Source: utility_summary.csv."
+                f"- {r.dataset}, K={r.K}, {r['mode']}: processed {r.processed}/{r.N}, reference-qualified {r.reference_qualified}, "
+                + (
+                    f"certified {r.certified}"
+                    if r["mode"] == "groth16"
+                    else f"solver-satisfied {r.get('solver_satisfied', 'unavailable')}, solver-rejected {r.get('solver_rejected', 'unavailable')}"
+                )
+                + f", agreement {r.get('agreement_pct', 'unavailable')}%, errors {r.errors}. Source: utility_summary.csv."
             )
     if aggregates:
         notes += ["", "## Repeated performance samples"]
@@ -267,56 +193,9 @@ def report(root):
                     f"mean {row['mean']:.9g}, SD {row['std']:.9g}, n={row['n']}. "
                     f"Source: performance_summary.csv / {row['source']}."
                 )
-        a = pd.DataFrame(aggregates)
-        names = sorted(a.dataset.unique())
-        fig, axes = plt.subplots(1, 2, figsize=(4.8, 2.0))
-        for ax, metric, unit in zip(
-            axes,
-            ["operation_seconds", "process_peak_rss_bytes"],
-            ["Time (s)", "Peak RSS (MiB)"],
-        ):
-            for offset, phase, hatch in [
-                (-0.24, "witness", ""),
-                (0, "prove", "//"),
-                (0.24, "verify", "xx"),
-            ]:
-                rows = a[(a.metric == metric) & (a.stage == phase)].set_index("dataset")
-                vals = [
-                    rows.loc[n, "mean"] if n in rows.index else np.nan for n in names
-                ]
-                if metric.endswith("bytes"):
-                    vals = np.array(vals) / 1024**2
-                ax.bar(
-                    np.arange(len(names)) + offset,
-                    vals,
-                    0.23,
-                    color="white",
-                    edgecolor="black",
-                    hatch=hatch,
-                    label=phase,
-                )
-            ax.set_xticks(
-                np.arange(len(names)), [LABELS.get(n, n) for n in names], rotation=20
-            )
-            ax.set_yscale("log")
-            ax.set_ylabel(unit)
-        axes[0].legend(
-            fontsize=6,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.25),
-            ncol=3,
-            frameon=False,
-        )
-        plot_save(fig, figures / "fig_time_memory.pdf")
-    setup = (
-        measured[measured.stage.isin(["compile", "setup"])]
-        if not measured.empty
-        else pd.DataFrame()
-    )
     if not repeated_setup.empty:
-        setup = repeated_setup
         setup_rows = []
-        for (dataset, phase), group in setup.groupby(["dataset", "stage"]):
+        for (dataset, phase), group in repeated_setup.groupby(["dataset", "stage"]):
             for metric in (
                 "operation_seconds",
                 "worker_seconds",
@@ -336,103 +215,23 @@ def report(root):
                     }
                 )
         csv_write(results / "setup_summary.csv", setup_rows)
-    if not setup.empty:
-        names = sorted(setup.dataset.unique())
-        fig, axes = plt.subplots(1, 2, figsize=(4.8, 1.9))
-        for ax, metric, unit in zip(
-            axes,
-            ["operation_seconds", "process_peak_rss_bytes"],
-            ["Time (s)", "Peak RSS (MiB)"],
-        ):
-            for offset, phase, hatch in [(-0.18, "compile", ""), (0.18, "setup", "//")]:
-                g = setup[setup.stage == phase].groupby("dataset")[metric].mean()
-                values = [g.get(n, np.nan) for n in names]
-                if metric.endswith("bytes"):
-                    values = np.array(values) / 1024**2
-                ax.bar(
-                    np.arange(len(names)) + offset,
-                    values,
-                    0.35,
-                    label=phase,
-                    color="white",
-                    edgecolor="black",
-                    hatch=hatch,
-                )
-            ax.set_xticks(
-                np.arange(len(names)), [LABELS.get(n, n) for n in names], rotation=20
-            )
-            ax.set_ylabel(unit)
-            ax.set_yscale("log")
-        axes[0].legend(
-            fontsize=6,
-            loc="upper center",
-            bbox_to_anchor=(0.5, 1.25),
-            ncol=2,
-            frameon=False,
-        )
-        plot_save(fig, figures / "fig_setup_time_memory.pdf")
     scale = read("scal_model.csv")
     if not scale.empty:
-        fig, axes = plt.subplots(1, 2, figsize=(4.8, 1.9))
-        for (family, group), marker in zip(
-            scale[scale.stage == "prove"].groupby("family"), ["o", "s", "^", "x"]
-        ):
-            g = group.groupby("activities").mean(numeric_only=True)
-            axes[0].plot(
-                g.index, g.constraints, "-" + marker, color="black", label=family
-            )
-            axes[1].plot(
-                g.index, g.operation_seconds, "-" + marker, color="black", label=family
-            )
-        axes[0].set_ylabel("Constraints")
-        axes[1].set_ylabel("Proving time (s)")
-        for ax in axes:
-            ax.set_xlabel("Visible activities")
-        axes[1].legend(fontsize=6)
-        plot_save(fig, figures / "fig_model_scalability.pdf")
-    capacity = read("scal_capacity.csv")
-    if not capacity.empty:
-        g = (
-            capacity[capacity.stage == "prove"]
-            .groupby("alignment_capacity")
-            .mean(numeric_only=True)
-        )
-        fig, axes = plt.subplots(1, 2, figsize=(4.8, 1.9))
-        axes[0].plot(g.index, g.constraints, "o-", color="black")
-        axes[0].set_ylabel("Constraints")
-        axes[1].plot(g.index, 100 * g.fit / g.N, "s-", color="black")
-        axes[1].set_ylabel("Cases fitting (%)")
-        for ax in axes:
-            ax.set_xlabel("Alignment capacity")
-        plot_save(fig, figures / "fig_capacity.pdf")
+        model_summary(scale).to_csv(results / "scal_model_summary.csv", index=False)
     if not cases.empty:
-        s = cases[
+        functional = cases[
             (cases.dataset == "sepsis")
             & (cases["mode"] == "groth16")
             & (cases.reason == "certified")
-        ]
-        if len(s):
-            fig, ax = plt.subplots(figsize=(4.8, 1.8))
-            ax.scatter(
-                s.trace_length,
-                s.prove_seconds,
-                s=9,
-                facecolors="none",
-                edgecolors="black",
-                linewidths=0.5,
+        ].copy()
+        functional["measurement_kind"] = "functional_single_run"
+        functional["n"] = 1
+        functional.to_csv(results / "scal_length.csv", index=False)
+        if not repeat.empty:
+            trace_summary(repeat, cases).to_csv(
+                results / "scal_length_repeated.csv", index=False
             )
-            ax.set_xlabel("Actual trace length")
-            ax.set_ylabel("Proving time (s)")
-            plot_save(fig, figures / "fig_trace_length.pdf")
-            s.to_csv(results / "scal_length.csv", index=False)
-    population = read("scal_population.csv")
-    if not population.empty:
-        g = population.groupby("N").mean(numeric_only=True)
-        fig, ax = plt.subplots(figsize=(4.8, 1.8))
-        ax.loglog(g.index, g.operation_seconds, "o-", color="black")
-        ax.set_xlabel("Synthetic roster entries")
-        ax.set_ylabel("Root validation time (s)")
-        plot_save(fig, figures / "fig_population.pdf")
+    generate_figures(results, root / "plotting", figures)
     integrity = read("integrity.csv")
     if not integrity.empty:
         notes.append(
@@ -451,11 +250,29 @@ def report(root):
                 f"- Distinct-certificate audit N={int(r.N)}: {int(r.certified)} certified, "
                 f"{r.operation_seconds:.6f} s audit operation. Source: scal_population_proofs.csv."
             )
-    if not measured.empty:
-        for _, r in measured[measured.stage.isin(["compile", "setup"])].iterrows():
+    setup_stats = read("setup_summary.csv")
+    notes += ["", "## Repeated compilation and setup"]
+    if not setup_stats.empty:
+        for _, r in setup_stats[setup_stats.metric == "operation_seconds"].iterrows():
             notes.append(
-                f"- {r.dataset} {r.stage}: operation {r.operation_seconds:.6f} s, process RSS {r.process_peak_rss_bytes/1024**2:.2f} MiB. Source: measurements.csv, measurement={r.measurement}."
+                f"- {r.dataset} {r.stage}: {r['mean']:.2f} s (SD {r['std']:.2f}), n={int(r.n)}. Source: setup_summary.csv / repeated_setup.csv."
             )
+    else:
+        notes.append(
+            "Repeated setup measurements unavailable. Initial functional runs are not substituted."
+        )
+    notes += [
+        "",
+        "## Interpretation",
+        "overhead_summary.csv separates each selected case from the pooled selected sample. It is not a population-wide estimate.",
+        "Prover operation time = alignment + witness encoding + proving. Overhead is that sum divided by alignment time for each paired repetition; setup, loading and verification are excluded.",
+        "dataset_median_case_overhead is the median of the selected cases' mean paired overhead ratios. operation_overhead_median is the median of individual paired ratios.",
+        "Error bars denote sample standard deviation (not confidence intervals). Model scaling has three repeats; per-case overhead has five.",
+        "scal_model_summary.csv reports places, transitions and arcs as well as constraints. Larger parallel nets are associated with higher circuit cost; these measurements do not isolate a single causal factor.",
+        "scal_length.csv contains functional-run observations. scal_length_repeated.csv contains medians and ranges for only the selected repeated Sepsis cases.",
+        "Each figure has its own source CSV under plotting/data. Plotting and reporting never start benchmark workers.",
+        "A population of 300 included 299 accepted certificates, not 300. Large synthetic roster timings are root checks only.",
+    ]
     expected = [
         "datasets.csv",
         "utility_cases.csv",
@@ -559,14 +376,14 @@ def report(root):
     tables += [r"\bottomrule\end{tabular}\end{table}"]
     (results / "evaluation_tables.tex").write_text("\n".join(tables) + "\n")
     captions = {
-        "fig_utility": "Threshold agreement at $K=1$ on the four frozen held-out cohorts. Plaintext bars count cases whose reference alignment cost is at most the threshold. Certified bars count distinct cases accepted by the auditor using actual proofs. The denominator includes every case in each cohort.",
-        "fig_overhead": "Mean operation time on selected short, median, and long alignments, with five repetitions per selected case. The protected computation includes plaintext alignment, witness encoding, and proving. Setup and artifact loading are excluded from these operation times and recorded separately.",
-        "fig_time_memory": "Mean operation time and mean per-process peak resident memory for witness encoding, proving, and verification on the selected cases. Each stage and repetition runs in a fresh process. Process peaks include loaded artifacts and serialization. Proving includes constraint solving.",
-        "fig_setup_time_memory": "Compilation and setup measured independently in fresh processes, with five repetitions per model. Time refers to the named operation, while resident memory is the peak of the complete worker process.",
-        "fig_model_scalability": "Controlled model scaling for sequence, choice, parallel, and loop structures. Trace capacity is 128 and alignment capacity is 256 for every model. Proving times average three repetitions per model.",
+        "fig_utility": "Threshold outcomes at $K=0,1,2,3$. Blue squares at $K=1$ count verified Groth16 certificates; open blue circles at other thresholds count solver-satisfied cases, not certificates. Red crosses show the plaintext reference. The denominator includes every case in each cohort.",
+        "fig_overhead": "Per-case mean operation overhead with sample-standard-deviation error bars over five paired repetitions. Dataset medians are calculated across selected case means, not across the whole population. The protected computation includes plaintext alignment, witness encoding, and proving. Setup and artifact loading are excluded from these operation times and recorded separately.",
+        "fig_time_memory": "Mean operation time and mean per-process peak resident memory for witness encoding, proving, and verification on the selected cases. Error bars show sample standard deviation across the selected cases and repetitions, not only within-case variability. Each stage and repetition runs in a fresh process. Process peaks include loaded artifacts and serialization. Proving includes constraint solving.",
+        "fig_setup_time_memory": "Compilation and setup measured independently in fresh processes, with five repetitions per model. Points and error bars show the mean and sample standard deviation. Time refers to the named operation, while resident memory is the peak of the complete worker process.",
+        "fig_model_scalability": "Controlled model scaling for sequence, choice, parallel, and loop structures. Trace capacity is 128 and alignment capacity is 256 for every model. Proving times show the mean and sample standard deviation of three repetitions per model. Structural counts are supplied in the figure CSV.",
         "fig_capacity": "Effect of alignment capacity for the fixed Sepsis model and a trace capacity of 185. Coverage counts all held-out traces whose reference alignment fits, regardless of whether its cost meets the audit threshold.",
-        "fig_trace_length": "Observed proving times for certified Sepsis traces at fixed capacities. These are observations from the functional cohort run, not the dedicated repeated performance sample.",
-        "fig_population": "Fresh-process root validation for synthetic rosters of distinct commitments. This experiment measures population-root checking, not verification of an equal number of proofs. Separate experiments verify distinct real certificates for populations of 100 and 300 cases.",
+        "fig_trace_length": "Single functional-run proving times for certified Sepsis cases at fixed capacities, with selected-case repeated medians and minimum-to-maximum ranges overlaid. Repeated measurements are available for four selected cases only.",
+        "fig_population": "Fresh-process root validation for synthetic rosters of distinct commitments, with means and sample-standard-deviation error bars over three repetitions. This experiment measures population-root checking, not verification of an equal number of proofs. Separate experiments audit 100 and 300 cases with 100 and 299 accepted certificates, respectively.",
     }
     figure_tex = [r"% Requires graphicx. Copy the accompanying figures directory."]
     for name, caption in captions.items():

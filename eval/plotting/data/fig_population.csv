@@ -1,0 +1,5 @@
+N,mean,std,n,measurement_kind
+100,0.004480625,4.206245356609626e-05,3,synthetic_root_validation_not_proof_verification
+1000,0.035474097333333336,0.00013400398342711069,3,synthetic_root_validation_not_proof_verification
+10000,0.34333291699999996,0.0015468437516080852,3,synthetic_root_validation_not_proof_verification
+100000,3.464410249666667,0.034863367527658916,3,synthetic_root_validation_not_proof_verification

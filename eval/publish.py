@@ -22,12 +22,15 @@ PUBLISHED_FILES = {
     "integrity.csv",
     "measurements.csv",
     "overhead.csv",
+    "overhead_summary.csv",
     "performance_summary.csv",
     "repeated_setup.csv",
     "repeated_timings.csv",
     "scal_capacity.csv",
     "scal_length.csv",
+    "scal_length_repeated.csv",
     "scal_model.csv",
+    "scal_model_summary.csv",
     "scal_population.csv",
     "scal_population_proofs.csv",
     "setup_summary.csv",
@@ -107,6 +110,15 @@ def publish(root, destination):
         target = destination / "figures" / p.name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(p, target)
+    # One reproducible numerical input for each plotted figure, no private witnesses.
+    from eval.plotting.draw import DRAW
+
+    for name in DRAW:
+        p = root / "plotting/data" / (name + ".csv")
+        if p.exists():
+            target = destination.parent / "plotting/data" / p.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(p, target)
     # Public-data research metadata only. Never publish salts, witnesses, or keys.
     for name in DATASETS:
         folder = root / "data" / name

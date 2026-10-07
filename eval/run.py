@@ -11,6 +11,7 @@ import psutil
 from pathlib import Path
 from eval.data import ROOT, DATASETS, prepare, save
 from eval.measure import stage
+from eval.summaries import utility_metrics
 
 BINARY = ROOT / "build/zkalign-eval"
 
@@ -231,6 +232,7 @@ def collect(data, out):
                 "processed": len(group),
                 "complete": len(group) == total,
                 "reference_qualified": qualified,
+                **utility_metrics(group, mode),
                 "certified": (
                     sum(r["certified"] for r in group) if mode == "groth16" else ""
                 ),

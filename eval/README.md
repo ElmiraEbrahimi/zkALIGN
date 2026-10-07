@@ -92,6 +92,14 @@ actual auditor over the saved certificates.
   root reconstruction and invalid-input experiments.
 - `eval/report.py`: CSV summaries, vector PDFs, a LaTeX section fragment and a
   source-indexed results README. Incomplete cohorts are not plotted as complete.
+- `eval/summaries.py`: solver agreement, paired per-case overhead, structural
+  model summaries, and repeated-case trace summaries. These are reporting only.
+- `eval/plotting/`: color figure scripts and one dedicated CSV per figure.
+  See `eval/plotting/README.md` for definitions and plotting-only commands.
+  To refresh reports from existing published observations without any benchmark,
+  run `PYTHONPATH=src .venv/bin/python -m eval.report --root eval`.
+  Compilation/setup values in the results README come from the repeated benchmark
+  in `setup_summary.csv`, not initial functional observations in `measurements.csv`.
 
 Artifacts under `outputs/evaluation/`:
 

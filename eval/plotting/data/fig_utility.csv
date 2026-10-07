@@ -1,0 +1,17 @@
+dataset,K,mode,N,processed,complete,reference_qualified,certified,false_certified,missed_capacity,errors,reference_share,certified_share,solver_satisfied,solver_rejected,agreement_cases,agreement_unavailable,agreement_pct,zk_share,zk_result_kind
+bpic13cp,0,solver,297,297,True,270,,0,0,0,0.9090909090909092,,270.0,27.0,297.0,0.0,100.0,0.9090909090909091,solver_satisfied_not_certified
+bpic13cp,1,groth16,297,297,True,293,293.0,0,0,0,0.9865319865319864,0.9865319865319864,,,297.0,0.0,100.0,0.9865319865319864,verified_certificate
+bpic13cp,2,solver,297,297,True,297,,0,0,0,1.0,,297.0,0.0,297.0,0.0,100.0,1.0,solver_satisfied_not_certified
+bpic13cp,3,solver,297,297,True,297,,0,0,0,1.0,,297.0,0.0,297.0,0.0,100.0,1.0,solver_satisfied_not_certified
+hospital,0,solver,300,300,True,262,,0,0,0,0.8733333333333333,,262.0,38.0,300.0,0.0,100.0,0.8733333333333333,solver_satisfied_not_certified
+hospital,1,groth16,300,300,True,300,300.0,0,0,0,1.0,1.0,,,300.0,0.0,100.0,1.0,verified_certificate
+hospital,2,solver,300,300,True,300,,0,0,0,1.0,,300.0,0.0,300.0,0.0,100.0,1.0,solver_satisfied_not_certified
+hospital,3,solver,300,300,True,300,,0,0,0,1.0,,300.0,0.0,300.0,0.0,100.0,1.0,solver_satisfied_not_certified
+rtfm,0,solver,300,300,True,297,,0,0,0,0.99,,297.0,3.0,300.0,0.0,100.0,0.99,solver_satisfied_not_certified
+rtfm,1,groth16,300,300,True,299,299.0,0,0,0,0.9966666666666668,0.9966666666666668,,,300.0,0.0,100.0,0.9966666666666668,verified_certificate
+rtfm,2,solver,300,300,True,300,,0,0,0,1.0,,300.0,0.0,300.0,0.0,100.0,1.0,solver_satisfied_not_certified
+rtfm,3,solver,300,300,True,300,,0,0,0,1.0,,300.0,0.0,300.0,0.0,100.0,1.0,solver_satisfied_not_certified
+sepsis,0,solver,210,210,True,144,,0,0,0,0.6857142857142857,,144.0,66.0,210.0,0.0,100.0,0.6857142857142857,solver_satisfied_not_certified
+sepsis,1,groth16,210,210,True,195,195.0,0,0,0,0.9285714285714286,0.9285714285714286,,,210.0,0.0,100.0,0.9285714285714286,verified_certificate
+sepsis,2,solver,210,210,True,204,,0,0,0,0.9714285714285714,,204.0,6.0,210.0,0.0,100.0,0.9714285714285714,solver_satisfied_not_certified
+sepsis,3,solver,210,210,True,210,,0,0,0,1.0,,210.0,0.0,210.0,0.0,100.0,1.0,solver_satisfied_not_certified
