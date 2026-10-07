@@ -25,6 +25,7 @@ eval-core:
 
 # Sequential execution prevents competing benchmarks contaminating timings.
 eval-scalability:
+	PYTHONPATH=src .venv/bin/python -m eval.validate
 	go build -o build/zkalign-eval ./cmd/zkalign-eval
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode repeats
 	PYTHONPATH=src .venv/bin/python -m eval.scalability --mode capacity
