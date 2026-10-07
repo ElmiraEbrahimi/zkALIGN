@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"sort"
@@ -33,6 +34,7 @@ func integrity(dir string, cfg *circuit.ModelConfig) ([]integrityResult, error) 
 		return nil, err
 	}
 	sort.Strings(files)
+	rand.New(rand.NewSource(42)).Shuffle(len(files), func(i, j int) { files[i], files[j] = files[j], files[i] })
 	operators := []string{"valid_control", "trace_change", "trace_remove", "trace_swap", "path_change", "skip_consumed_event", "invalid_transition", "disabled_transition",
 		"wrong_sync_label", "truncate", "wrong_cost", "above_threshold", "bad_padding", "bad_length", "bad_move_type", "bad_index"}
 	rows := make([]integrityResult, len(operators))
@@ -252,7 +254,7 @@ func integrity(dir string, cfg *circuit.ModelConfig) ([]integrityResult, error) 
 	v.Check("valid_retry", proof)
 	record("valid_after_invalid", "groth16_auditor", "accept", v.Report().Certified == 1)
 	bad = bundle
-	bad.Commitment = "1"
+	bad.Commitment = "0"
 	badBytes, _ = json.Marshal(bad)
 	v, _ = circuit.NewAuditVerifier(data, hashing.Manifest(data), vk)
 	v.Check("unlisted", badBytes)

@@ -63,6 +63,7 @@ def report(root):
     cases = read("utility_cases.csv")
     measured = read("measurements.csv")
     repeat = read("repeated_timings.csv")
+    repeated_setup = read("repeated_setup.csv")
     aggregates = []
     timing = repeat if not repeat.empty else measured
     if not timing.empty:
@@ -136,7 +137,7 @@ def report(root):
                     "plaintext_alignment_seconds": plain,
                     "prover_operation_seconds": total,
                     "operation_overhead": total / plain if plain else None,
-                    "cold_worker_seconds": cold,
+                    "fresh_worker_seconds": cold,
                     "verifier_seconds": float(g.loc["verify", "operation_seconds"]),
                 }
             )
@@ -217,6 +218,29 @@ def report(root):
         if not measured.empty
         else pd.DataFrame()
     )
+    if not repeated_setup.empty:
+        setup = repeated_setup
+        setup_rows = []
+        for (dataset, phase), group in setup.groupby(["dataset", "stage"]):
+            for metric in (
+                "operation_seconds",
+                "worker_seconds",
+                "process_peak_rss_bytes",
+            ):
+                v = group[metric]
+                setup_rows.append(
+                    {
+                        "dataset": dataset,
+                        "stage": phase,
+                        "metric": metric,
+                        "n": len(v),
+                        "mean": v.mean(),
+                        "std": v.std(),
+                        "median": v.median(),
+                        "max": v.max(),
+                    }
+                )
+        csv_write(results / "setup_summary.csv", setup_rows)
     if not setup.empty:
         names = sorted(setup.dataset.unique())
         fig, axes = plt.subplots(1, 2, figsize=(4.8, 1.9))
@@ -324,6 +348,7 @@ def report(root):
         "utility_summary.csv",
         "measurements.csv",
         "repeated_timings.csv",
+        "repeated_setup.csv",
         "integrity.csv",
         "scal_model.csv",
         "scal_capacity.csv",
