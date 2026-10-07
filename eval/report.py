@@ -142,6 +142,34 @@ def report(root):
                 }
             )
         csv_write(results / "overhead.csv", pairs)
+        if pairs:
+            grouped = pd.DataFrame(pairs).groupby("dataset").mean(numeric_only=True)
+            names = list(grouped.index)
+            fig, ax = plt.subplots(figsize=(4.8, 1.9))
+            for offset, column, label, hatch in (
+                (-0.18, "plaintext_alignment_seconds", "Plaintext alignment", ""),
+                (0.18, "prover_operation_seconds", "Alignment + witness + proof", "//"),
+            ):
+                ax.bar(
+                    np.arange(len(names)) + offset,
+                    grouped[column],
+                    0.35,
+                    label=label,
+                    color="white",
+                    edgecolor="black",
+                    hatch=hatch,
+                )
+            ax.set_xticks(np.arange(len(names)), [LABELS[n] for n in names])
+            ax.set_ylabel("Operation time (s)")
+            ax.set_yscale("log")
+            ax.legend(
+                fontsize=7,
+                loc="upper center",
+                bbox_to_anchor=(0.5, 1.25),
+                ncol=2,
+                frameon=False,
+            )
+            plot_save(fig, figures / "fig_overhead.pdf")
     if not utility.empty:
         u = utility[
             (utility["mode"] == "groth16")
@@ -211,7 +239,13 @@ def report(root):
             )
             ax.set_yscale("log")
             ax.set_ylabel(unit)
-        axes[0].legend(fontsize=6, loc="upper left")
+        axes[0].legend(
+            fontsize=6,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=3,
+            frameon=False,
+        )
         plot_save(fig, figures / "fig_time_memory.pdf")
     setup = (
         measured[measured.stage.isin(["compile", "setup"])]
@@ -268,7 +302,13 @@ def report(root):
             )
             ax.set_ylabel(unit)
             ax.set_yscale("log")
-        axes[0].legend(fontsize=6)
+        axes[0].legend(
+            fontsize=6,
+            loc="upper center",
+            bbox_to_anchor=(0.5, 1.25),
+            ncol=2,
+            frameon=False,
+        )
         plot_save(fig, figures / "fig_setup_time_memory.pdf")
     scale = read("scal_model.csv")
     if not scale.empty:
@@ -337,6 +377,13 @@ def report(root):
         notes.append(
             f"- Integrity attempts {int(integrity.attempts.sum())}, unexpected outcomes {int(integrity.unexpected.sum())}, inapplicable mutations {int(integrity.skipped.sum())}. Source: integrity.csv."
         )
+    proof_pop = read("scal_population_proofs.csv")
+    if not proof_pop.empty:
+        for _, r in proof_pop.iterrows():
+            notes.append(
+                f"- Distinct-certificate audit N={int(r.N)}: {int(r.certified)} certified, "
+                f"{r.operation_seconds:.6f} s audit operation. Source: scal_population_proofs.csv."
+            )
     if not measured.empty:
         for _, r in measured[measured.stage.isin(["compile", "setup"])].iterrows():
             notes.append(
@@ -353,6 +400,7 @@ def report(root):
         "scal_model.csv",
         "scal_capacity.csv",
         "scal_population.csv",
+        "scal_population_proofs.csv",
     ]
     missing = [p for p in expected if not (results / p).exists()]
     notes.extend(
@@ -392,6 +440,22 @@ def report(root):
         r"We vary alignment capacity while holding the Sepsis model fixed, and vary the size of controlled sequence, choice, parallel, and loop models at fixed trace and alignment capacities. Root reconstruction for large synthetic rosters is measured separately from verification of distinct real certificates.",
     ]
     (results / "evaluation_results.tex").write_text("\n\n".join(tex) + "\n")
+    tables = [
+        r"% Requires booktabs. Tables summarize complete measured runs only.",
+        r"\begin{table}[t]\centering\small",
+        r"\caption{Evaluation models and frozen audit populations.}",
+        r"\begin{tabular}{lrrrrrr}\toprule",
+        r"Log & Cases & Activities & Places & Transitions & $B_\gamma$ & Constraints\\\midrule",
+    ]
+    if not datasets.empty:
+        for _, r in datasets.iterrows():
+            tables.append(
+                f"{LABELS.get(r.dataset, r.dataset)} & {int(r.population)} & "
+                f"{int(r.activities)} & {int(r.places)} & {int(r.transitions)} & "
+                f"{int(r.alignment_capacity)} & {int(r.constraints)}" + r"\\"
+            )
+    tables += [r"\bottomrule\end{tabular}\end{table}"]
+    (results / "evaluation_tables.tex").write_text("\n".join(tables) + "\n")
     return figures
 
 
