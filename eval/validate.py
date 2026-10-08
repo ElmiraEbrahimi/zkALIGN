@@ -14,12 +14,7 @@ def validate(root):
         folder = root / "data" / name
         initialize(folder)
         rows = json.loads((folder / "utility.json").read_text())
-        real = [r for r in rows if r["K"] == 1 and r["mode"] == "groth16"]
         population = json.loads((folder / "cases.json").read_text())
-        if len(real) != len(population):
-            raise ValueError(f"{name}: incomplete real proof experiment")
-        if len({r["index"] for r in real}) != len(population):
-            raise ValueError("duplicate result indices")
         for r in rows:
             if r["reason"].endswith("_error"):
                 raise ValueError(f"{name}: {r}")
@@ -28,15 +23,20 @@ def validate(root):
             if r["mode"] == "solver" and r.get("solver_satisfied") != r["reference_ok"]:
                 raise ValueError(f"{name}: solver differs from reference")
         for k in (0, 1, 2, 3):
-            if len([r for r in rows if r["K"] == k]) != len(population):
-                raise ValueError(f"{name}: threshold {k} incomplete")
-        report = json.loads((folder / "measurements/audit-k1.json").read_text())[
-            "details"
-        ]
-        if report["population"] != len(population) or report["certified"] != sum(
-            r["certified"] for r in real
-        ):
-            raise ValueError("auditor report inconsistent with per-case results")
+            real = [r for r in rows if r["K"] == k and r["mode"] == "groth16"]
+            if len(real) != len(population):
+                raise ValueError(
+                    f"{name}: threshold {k} real proof experiment incomplete"
+                )
+            if {r["index"] for r in real} != {c["index"] for c in population}:
+                raise ValueError("duplicate or incorrect result indices")
+            report = json.loads((folder / f"measurements/audit-k{k}.json").read_text())[
+                "details"
+            ]
+            if report["population"] != len(population) or report["certified"] != sum(
+                r["certified"] for r in real
+            ):
+                raise ValueError("auditor report inconsistent with per-case results")
     return summary
 
 

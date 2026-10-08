@@ -72,10 +72,22 @@ make eval-report
 PYTHONPATH=src .venv/bin/python -m eval.publish
 ```
 
-The main run uses real proofs at K=1 and separate solver sensitivity checks at
-K=0,2,3. For real proofs at all four thresholds, use `python -m eval.run
---thresholds 0 1 2 3 --solve-thresholds` with `PYTHONPATH=src` and the project
-Python. A solver result is never added to the audit counter. The core runner saves
+The main run now uses real proofs at K=0,1,2,3. Only reference-qualified cases
+are proved; above-threshold cases remain in the denominator as uncertified.
+To extend saved cohorts without rerunning alignment, setup or performance studies,
+use `PYTHONPATH=src .venv/bin/python -m eval.run --existing-cohorts-only`.
+Completed proofs are reused and each full threshold is checked by the auditor.
+Earlier solver observations are archived locally in `utility-before-groth16.json`.
+After a completed run, publish only the utility evidence with
+`PYTHONPATH=src .venv/bin/python -m eval.publish --utility-only`.
+This validates all four thresholds, checks saved proof files and successful stage
+records against the audit receipts, and refreshes the utility CSVs, provenance,
+and audit reports in `eval/results/`. It does not regenerate figures, proofs, or
+performance benchmarks. A historical interrupted console log is not the completion
+record. Only reference-qualified cases receive proof attempts, so utility agreement
+must not be presented as a negative-input rejection experiment.
+Solver-only thresholds remain an explicit optional diagnostic setting, never
+certificates. The core runner saves
 each completed case and resumes it; complete threshold runs also execute the
 actual auditor over the saved certificates.
 

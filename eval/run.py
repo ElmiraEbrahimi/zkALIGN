@@ -62,7 +62,7 @@ def initialize(folder):
         require(r)
 
 
-def evaluate(folder, thresholds=(1,), solve_thresholds=(0, 2, 3)):
+def evaluate(folder, thresholds=(0, 1, 2, 3), solve_thresholds=()):
     folder = Path(folder)
     initialize(folder)
     cases = json.loads((folder / "cases.json").read_text())
@@ -70,6 +70,13 @@ def evaluate(folder, thresholds=(1,), solve_thresholds=(0, 2, 3)):
     rows = []
     cache = folder / "utility.json"
     old = json.loads(cache.read_text()) if cache.exists() else []
+    archive = folder / "utility-before-groth16.json"
+    if any(r["mode"] == "solver" and r["K"] in thresholds for r in old):
+        if not archive.exists():
+            save(archive, old)
+    # Retain other completed thresholds while a new threshold is in progress.
+    # Otherwise an interruption at K=0 would discard the existing K=1 cache.
+    checkpoint = {(r["index"], r["K"], r["mode"]): r for r in old}
     done = {
         (r["index"], r["K"], r["mode"]): r
         for r in old
@@ -171,7 +178,8 @@ def evaluate(folder, thresholds=(1,), solve_thresholds=(0, 2, 3)):
                     if row["reason"] == "solver_error":
                         row["error"] = r.get("error", "")
             rows.append(row)
-            save(cache, rows)
+            checkpoint[key] = row
+            save(cache, list(checkpoint.values()))
             print(name, k, c["index"], row["reason"], flush=True)
         if full:
             r = stage(BINARY, folder, "audit", k=k, tag=f"audit-k{k}")
@@ -262,20 +270,47 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--datasets", nargs="+", default=list(DATASETS))
     p.add_argument("--root", type=Path, default=ROOT / "outputs/evaluation")
-    p.add_argument("--thresholds", type=int, nargs="+", default=[1])
-    p.add_argument("--solve-thresholds", type=int, nargs="*", default=[0, 2, 3])
+    p.add_argument("--thresholds", type=int, nargs="+", default=[0, 1, 2, 3])
+    p.add_argument("--solve-thresholds", type=int, nargs="*", default=[])
+    p.add_argument(
+        "--existing-cohorts-only",
+        action="store_true",
+        help="Reuse frozen cases, circuits and keys; do not prepare or set up new cohorts",
+    )
     p.add_argument("--collect-only", action="store_true")
     args = p.parse_args()
     out = args.root / "results"
     out.mkdir(parents=True, exist_ok=True)
     if not args.collect_only:
+        if args.existing_cohorts_only:
+            for name in args.datasets:
+                for filename in (
+                    "cases.json",
+                    "config.json",
+                    "frozen-inputs.json",
+                    "circuit.r1cs",
+                    "proving.key",
+                    "verification.key",
+                    "population.json",
+                    "measurements/compile.json",
+                    "measurements/setup.json",
+                ):
+                    if not (args.root / "data" / name / filename).is_file():
+                        raise FileNotFoundError(
+                            f"Missing frozen artifact: {name}/{filename}"
+                        )
         subprocess.run(
             ["go", "build", "-o", str(BINARY), "./cmd/zkalign-eval"],
             cwd=ROOT,
             check=True,
         )
         save(
-            out / "environment.json",
+            out
+            / (
+                "utility_environment.json"
+                if args.existing_cohorts_only
+                else "environment.json"
+            ),
             {
                 "platform": platform.platform(),
                 "machine": platform.machine(),
@@ -300,10 +335,14 @@ def main():
                     [sys.executable, "-m", "pip", "freeze"], text=True
                 ).splitlines(),
                 "measurement": "fresh process per stage; wait4 per-child RSS; 5ms samples",
+                "thresholds": args.thresholds,
+                "solver_thresholds": args.solve_thresholds,
+                "existing_cohorts_only": args.existing_cohorts_only,
             },
         )
         for name in args.datasets:
-            prepare(name, args.root / "data")
+            if not args.existing_cohorts_only:
+                prepare(name, args.root / "data")
             evaluate(args.root / "data" / name, args.thresholds, args.solve_thresholds)
             collect(args.root / "data", out)
     print(json.dumps(collect(args.root / "data", out), indent=2))

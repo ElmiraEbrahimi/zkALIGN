@@ -1,21 +1,59 @@
+# Python environments, caches, and build artifacts
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .venv/
+venv/
 dist/
 build/
 *.egg-info/
-circuit/*.r1cs
-circuit/*.pk
-circuit/*.vk
-circuit/*.proof
-datasets/raw/
-outputs/
+*.test
 
-# Generated paper assets stay local; retain numerical evaluation results.
-eval/results/figures/
-eval/results/*.tex
-paper/
-docs/paper-system-overview/
-Claude outputs/
+# Raw datasets and local runs, including private cases, salts, keys, and proofs.
+# Keep datasets/README.md and deliberately published eval/results/ CSVs tracked.
+/datasets/raw/
+/outputs/
+
+# Generated cryptographic artifacts, even when saved outside outputs/.
+*.r1cs
+*.pk
+*.vk
+*.key
+*.wtns
+*.proof
+*.proof.json
+private-*.json
+
+# Local credentials and transient measurement files
+.env
+.env.*
+!.env.example
+*.log
+*.pending
+
+# Local paper-writing material and generated document exports.
+# Ignore rules do not remove files that Git already tracks.
+/paper/
+/Claude outputs/
+/docs/paper-system-overview/
+/docs/implementation-team-brief/
+/eval/results/evaluation_*.tex
+*.pdf
+*.zip
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+
+# OS/editor temporary files
 .DS_Store
+._*
+*.swp
+*.swo
+*~
+
+# Do not ignore eval/results/*.csv or eval/plotting/data/*.csv.
+# Those are the reproducible numerical results and per-figure source data.

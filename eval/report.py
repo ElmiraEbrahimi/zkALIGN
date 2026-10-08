@@ -221,6 +221,7 @@ def report(root):
     if not cases.empty:
         functional = cases[
             (cases.dataset == "sepsis")
+            & (cases.K == 1)
             & (cases["mode"] == "groth16")
             & (cases.reason == "certified")
         ].copy()
@@ -304,7 +305,7 @@ def report(root):
         r"\subsection{Experimental Setup and Datasets}",
         r"We evaluate individual trace certificates on four public event logs. Cases are split before discovery and audit populations are fixed before alignment computation. Each evaluation population has its own complete commitment root. Model and capacity configurations are compiled separately.",
         r"\subsection{Utility Preservation and Certification Coverage}",
-        r"The plaintext reference uses zero cost for synchronous and silent model moves and unit cost for log and visible model moves. At $K=1$, certification is measured using actual Groth16 proofs and the auditor's population counter. Results at other thresholds must be identified as solver checks unless real proofs were generated.",
+        r"The plaintext reference uses zero cost for synchronous and silent model moves and unit cost for log and visible model moves. Certification counts only actual Groth16 proofs accepted by the auditor. Threshold modes and completed populations are reported below.",
     ]
     if not utility.empty:
         for _, r in utility[
@@ -376,7 +377,7 @@ def report(root):
     tables += [r"\bottomrule\end{tabular}\end{table}"]
     (results / "evaluation_tables.tex").write_text("\n".join(tables) + "\n")
     captions = {
-        "fig_utility": "Threshold outcomes at $K=0,1,2,3$. Blue squares at $K=1$ count verified Groth16 certificates; open blue circles at other thresholds count solver-satisfied cases, not certificates. Red crosses show the plaintext reference. The denominator includes every case in each cohort.",
+        "fig_utility": "Threshold outcomes at $K=0,1,2,3$. Blue squares show the share certified by Groth16 proofs and red circles show the plaintext reference. Triangles, if present, denote solver checks rather than certificates. The denominator includes every case in each cohort.",
         "fig_overhead": "Per-case mean operation overhead with sample-standard-deviation error bars over five paired repetitions. Dataset medians are calculated across selected case means, not across the whole population. The protected computation includes plaintext alignment, witness encoding, and proving. Setup and artifact loading are excluded from these operation times and recorded separately.",
         "fig_time_memory": "Mean operation time and mean per-process peak resident memory for witness encoding, proving, and verification on the selected cases. Error bars show sample standard deviation across the selected cases and repetitions, not only within-case variability. Each stage and repetition runs in a fresh process. Process peaks include loaded artifacts and serialization. Proving includes constraint solving.",
         "fig_setup_time_memory": "Compilation and setup measured independently in fresh processes, with five repetitions per model. Points and error bars show the mean and sample standard deviation. Time refers to the named operation, while resident memory is the peak of the complete worker process.",

@@ -48,13 +48,29 @@ def finish(fig, path, height=4.5, top=0.96):
     plt.close(fig)
 
 
+@plt.rc_context(
+    {
+        "font.serif": ["Times New Roman", "DejaVu Serif"],
+        "mathtext.fontset": "stix",
+        "axes.linewidth": 0.8,
+    }
+)
 def utility(frame, path):
-    names = [n for n in LABELS if n in set(frame.dataset)]
+    blue, red = "#2171b5", "#8c2d26"
+    names = [
+        n for n in ("bpic13cp", "rtfm", "sepsis", "hospital") if n in set(frame.dataset)
+    ]
+    titles = {
+        "bpic13cp": "BPI 2013",
+        "rtfm": "Traffic Fines",
+        "sepsis": "Sepsis",
+        "hospital": "Hospital Billing",
+    }
     fig, axes = plt.subplots(1, len(names), squeeze=False, sharey=True)
     for ax, name in zip(axes[0], names):
         g = frame[frame.dataset == name].sort_values("K")
-        ax.plot(g.K, g.zk_share * 100, color=BLUE, linewidth=0.8)
-        for mode, marker, face in (("groth16", "s", BLUE), ("solver", "o", "white")):
+        ax.plot(g.K, g.zk_share * 100, color=blue, linewidth=1.2)
+        for mode, marker, face in (("groth16", "s", "white"), ("solver", "^", "white")):
             rows = g[g["mode"] == mode]
             ax.scatter(
                 rows.K,
@@ -62,21 +78,22 @@ def utility(frame, path):
                 marker=marker,
                 s=35,
                 facecolor=face,
-                edgecolor=BLUE,
+                edgecolor=blue,
                 zorder=3,
             )
         ax.plot(
             g.K,
             g.reference_share * 100,
-            "x--",
-            color=RED,
-            markersize=4,
+            "o--",
+            color=red,
+            markersize=2.5,
             linewidth=0.7,
             zorder=4,
         )
-        ax.set_title(LABELS[name])
-        ax.set_xlabel("Threshold K")
+        ax.set_title(titles[name] + "\n" + rf"$N={int(g.N.iloc[0])}$", pad=5)
+        ax.set_xlabel(r"Threshold $K$")
         ax.set_xticks([0, 1, 2, 3])
+        ax.set_xlim(-0.2, 3.2)
         ax.set_ylim(
             max(
                 0,
@@ -88,29 +105,49 @@ def utility(frame, path):
             ),
             103,
         )
-    axes[0, 0].set_ylabel("Cases (%)")
+    axes[0, 0].set_ylabel("Cases within threshold (%)")
     handles = [
-        Line2D([], [], color=RED, marker="x", linestyle="--", label="Plaintext"),
-        Line2D([], [], color=BLUE, marker="s", linestyle="none", label="Groth16 (K=1)"),
         Line2D(
             [],
             [],
-            color=BLUE,
+            color=red,
             marker="o",
+            markersize=3,
+            linestyle="--",
+            label="Plaintext (PM4Py)",
+        ),
+        Line2D(
+            [],
+            [],
+            color=blue,
+            marker="s",
             markerfacecolor="white",
-            linestyle="none",
-            label="Solver (K=0,2,3)",
+            markersize=5,
+            linestyle="-",
+            label="zkALIGN proofs",
         ),
     ]
+    if (frame["mode"] == "solver").any():
+        handles.append(
+            Line2D(
+                [],
+                [],
+                color=blue,
+                marker="^",
+                markerfacecolor="white",
+                linestyle="none",
+                label="Solver only",
+            )
+        )
     fig.legend(
         handles=handles,
         loc="upper center",
-        ncol=3,
+        ncol=len(handles),
         frameon=False,
         handlelength=1.2,
         columnspacing=1,
     )
-    finish(fig, path, height=4.8, top=0.84)
+    finish(fig, path, height=4.8, top=0.85)
 
 
 def overhead(frame, path):

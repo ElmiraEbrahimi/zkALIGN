@@ -3,6 +3,23 @@
 This folder contains plotting code and one dedicated CSV for each figure.
 No plotting or reporting command compiles circuits, generates proofs, or runs benchmarks.
 
+Refresh **only the utility figure** from the completed local all-threshold run:
+
+```sh
+PYTHONPATH=src .venv/bin/python -m eval.plotting.utility
+```
+
+This reads `outputs/evaluation/results/utility_summary.csv`, rejects missing,
+duplicate, incomplete, erroneous, or solver-only configurations, and saves
+`eval/plotting/data/fig_utility.csv` and `eval/results/figures/fig_utility.pdf`.
+The PDF is 12.2 cm wide and 4.8 cm high, with Times-style type and the muted
+red `#8c2d26` / blue `#2171b5` reference palette. Nested markers keep both
+series visible when equal. All panels use the same percentage scale.
+No error bars are added to exact cohort proportions. Above-threshold cases
+remain uncertified without a proof attempt, so the figure is not an invalid-proof
+rejection experiment. The CSV preserves all source counts and adds the plotted
+percentages. Other figures and performance measurements are untouched.
+
 Refresh summaries and figures from the locally published observations:
 
 ```sh
@@ -22,7 +39,7 @@ additional series, as in ZERUS. Markers and line styles also distinguish series.
 
 | Figure | Source and interpretation |
 | --- | --- |
-| Utility | All four thresholds, fixed cohort denominator. K=1 counts actual Groth16 certificates. K=0,2,3 count solver satisfaction, never certification. The percentage axis is zoomed and explicitly labelled. |
+| Utility | All four thresholds, fixed cohort denominator. Blue squares count actual Groth16 certificates; red circles show the reference. Optional diagnostic solver rows use triangles, never certification. The percentage axis is zoomed and explicitly labelled. Utility uses the ZERUS muted palette (#8c2d26 and #2171b5). |
 | Overhead | One point per selected case, five paired repeats. Mean plus/minus sample SD. Dashed line is the median of selected case means, not a population estimate. |
 | Model scalability | Three proof repeats per configuration, mean plus/minus sample SD. CSV includes places, transitions, arcs and constraints. These covary, so no single-variable causal explanation is established. |
 | Time/memory | Selected-case repeated means plus/minus sample SD, default threads only. Memory is whole-process peak RSS. |
