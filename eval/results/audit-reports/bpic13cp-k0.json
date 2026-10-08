@@ -1,0 +1,1393 @@
+{
+  "manifest_mimc": "067a3943813f6d063f0388258107afef5ee3d1ed3f2aab9bf12d4b2e62046f02",
+  "population": 297,
+  "certified": 270,
+  "uncertified": 27,
+  "required": 283,
+  "target_percent": 95,
+  "threshold": 0,
+  "target_met": false,
+  "certified_indices": [
+    0,
+    1,
+    2,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    151,
+    152,
+    154,
+    155,
+    156,
+    157,
+    158,
+    159,
+    160,
+    161,
+    162,
+    163,
+    164,
+    166,
+    167,
+    168,
+    170,
+    171,
+    172,
+    173,
+    174,
+    175,
+    176,
+    177,
+    179,
+    180,
+    181,
+    182,
+    183,
+    184,
+    186,
+    188,
+    189,
+    190,
+    191,
+    192,
+    193,
+    194,
+    195,
+    196,
+    197,
+    198,
+    199,
+    200,
+    202,
+    203,
+    204,
+    206,
+    207,
+    208,
+    209,
+    211,
+    212,
+    213,
+    214,
+    215,
+    216,
+    217,
+    218,
+    219,
+    221,
+    222,
+    223,
+    224,
+    225,
+    226,
+    227,
+    228,
+    229,
+    230,
+    231,
+    233,
+    234,
+    235,
+    236,
+    237,
+    238,
+    241,
+    242,
+    243,
+    245,
+    246,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    263,
+    264,
+    265,
+    266,
+    267,
+    268,
+    269,
+    270,
+    271,
+    273,
+    274,
+    275,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285,
+    286,
+    287,
+    288,
+    289,
+    290,
+    291,
+    292,
+    293,
+    296
+  ],
+  "uncertified_indices": [
+    3,
+    13,
+    21,
+    30,
+    106,
+    119,
+    127,
+    139,
+    150,
+    153,
+    165,
+    169,
+    178,
+    185,
+    187,
+    201,
+    205,
+    210,
+    220,
+    232,
+    239,
+    240,
+    244,
+    272,
+    276,
+    294,
+    295
+  ],
+  "receipts": [
+    {
+      "file": "k0-0.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-1.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-10.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-100.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-101.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-102.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-103.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-104.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-105.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-107.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-108.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-109.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-11.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-110.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-111.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-112.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-113.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-114.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-115.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-116.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-117.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-118.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-12.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-120.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-121.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-122.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-123.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-124.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-125.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-126.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-128.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-129.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-130.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-131.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-132.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-133.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-134.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-135.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-136.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-137.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-138.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-14.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-140.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-141.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-142.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-143.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-144.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-145.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-146.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-147.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-148.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-149.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-15.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-151.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-152.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-154.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-155.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-156.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-157.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-158.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-159.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-16.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-160.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-161.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-162.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-163.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-164.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-166.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-167.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-168.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-17.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-170.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-171.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-172.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-173.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-174.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-175.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-176.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-177.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-179.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-18.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-180.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-181.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-182.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-183.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-184.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-186.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-188.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-189.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-19.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-190.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-191.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-192.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-193.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-194.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-195.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-196.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-197.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-198.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-199.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-2.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-20.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-200.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-202.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-203.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-204.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-206.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-207.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-208.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-209.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-211.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-212.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-213.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-214.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-215.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-216.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-217.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-218.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-219.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-22.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-221.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-222.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-223.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-224.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-225.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-226.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-227.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-228.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-229.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-23.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-230.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-231.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-233.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-234.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-235.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-236.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-237.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-238.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-24.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-241.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-242.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-243.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-245.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-246.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-247.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-248.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-249.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-25.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-250.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-251.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-252.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-253.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-254.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-255.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-256.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-257.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-258.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-259.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-26.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-260.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-261.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-262.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-263.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-264.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-265.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-266.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-267.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-268.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-269.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-27.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-270.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-271.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-273.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-274.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-275.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-277.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-278.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-279.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-28.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-280.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-281.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-282.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-283.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-284.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-285.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-286.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-287.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-288.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-289.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-29.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-290.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-291.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-292.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-293.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-296.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-31.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-32.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-33.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-34.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-35.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-36.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-37.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-38.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-39.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-4.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-40.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-41.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-42.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-43.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-44.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-45.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-46.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-47.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-48.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-49.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-5.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-50.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-51.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-52.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-53.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-54.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-55.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-56.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-57.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-58.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-59.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-6.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-60.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-61.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-62.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-63.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-64.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-65.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-66.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-67.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-68.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-69.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-7.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-70.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-71.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-72.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-73.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-74.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-75.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-76.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-77.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-78.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-79.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-8.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-80.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-81.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-82.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-83.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-84.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-85.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-86.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-87.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-88.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-89.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-9.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-90.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-91.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-92.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-93.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-94.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-95.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-96.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-97.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-98.proof.json",
+      "status": "accepted"
+    },
+    {
+      "file": "k0-99.proof.json",
+      "status": "accepted"
+    }
+  ]
+}

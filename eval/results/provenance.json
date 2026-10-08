@@ -4,11 +4,16 @@
   "scope": "Research outputs on fixed held-out cohorts, not full source-log certification.",
   "private_artifacts_included": false,
   "real_proof_thresholds": [
-    1
-  ],
-  "solver_only_thresholds": [
     0,
+    1,
     2,
     3
-  ]
+  ],
+  "solver_only_thresholds": [],
+  "utility_source_revision": "406e6dc24b153e805de3c180c4d57cc396b9eb28",
+  "utility_last_audit_utc": "2026-10-08T11:01:40.665570+00:00",
+  "utility_case_threshold_results": 4428,
+  "utility_verified_proofs": 4268,
+  "utility_above_threshold_policy": "No proof attempted; retained as uncertified.",
+  "utility_evidence": "Saved successful witness/prove/verify records, proof files, and audit receipts checked."
 }

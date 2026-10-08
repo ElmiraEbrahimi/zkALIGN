@@ -6,22 +6,6 @@ Memory is RSS in bytes (plots use MiB). OS peaks are per fresh process, includin
 Operation times exclude loading/serialization. Worker times include them. Witness means gnark input encoding; proving includes constraint solving.
 Main-cohort timings are functional-run observations; repeated timings are the performance sample.
 
-- bpic13cp, K=0, solver: processed 297/297, reference-qualified 270, solver-satisfied 270.0, solver-rejected 27.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- bpic13cp, K=1, groth16: processed 297/297, reference-qualified 293, certified 293.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- bpic13cp, K=2, solver: processed 297/297, reference-qualified 297, solver-satisfied 297.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- bpic13cp, K=3, solver: processed 297/297, reference-qualified 297, solver-satisfied 297.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- hospital, K=0, solver: processed 300/300, reference-qualified 262, solver-satisfied 262.0, solver-rejected 38.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- hospital, K=1, groth16: processed 300/300, reference-qualified 300, certified 300.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- hospital, K=2, solver: processed 300/300, reference-qualified 300, solver-satisfied 300.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- hospital, K=3, solver: processed 300/300, reference-qualified 300, solver-satisfied 300.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- rtfm, K=0, solver: processed 300/300, reference-qualified 297, solver-satisfied 297.0, solver-rejected 3.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- rtfm, K=1, groth16: processed 300/300, reference-qualified 299, certified 299.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- rtfm, K=2, solver: processed 300/300, reference-qualified 300, solver-satisfied 300.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- rtfm, K=3, solver: processed 300/300, reference-qualified 300, solver-satisfied 300.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- sepsis, K=0, solver: processed 210/210, reference-qualified 144, solver-satisfied 144.0, solver-rejected 66.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- sepsis, K=1, groth16: processed 210/210, reference-qualified 195, certified 195.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- sepsis, K=2, solver: processed 210/210, reference-qualified 204, solver-satisfied 204.0, solver-rejected 6.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
-- sepsis, K=3, solver: processed 210/210, reference-qualified 210, solver-satisfied 210.0, solver-rejected 0.0, agreement 100.0%, errors 0. Source: utility_summary.csv.
 
 ## Repeated performance samples
 - bpic13cp alignment operation_seconds: mean 0.00149947227, SD 0.00139999821, n=15. Source: performance_summary.csv / repeated_timings.csv.
@@ -83,3 +67,30 @@ A population of 300 included 299 accepted certificates, not 300. Large synthetic
 
 ## Completeness
 Missing experiment files: none
+
+<!-- utility-results:start -->
+## Utility preservation
+
+All four thresholds use real Groth16 proofs. Verified proofs: 4,268.
+Only reference-qualified cases are proved. Above-threshold cases remain uncertified without a proof attempt.
+Thus utility measures successful certification coverage, not adversarial rejection or universal soundness.
+The earlier interrupted run log is historical; completed per-case records and all 16 audit reports are the evidence.
+Source: utility_summary.csv, utility_cases.csv, and audit-reports/<dataset>-k<K>.json.
+
+- bpic13cp, K=0: reference-qualified 270, certified 270/297, errors 0, capacity misses 0.
+- bpic13cp, K=1: reference-qualified 293, certified 293/297, errors 0, capacity misses 0.
+- bpic13cp, K=2: reference-qualified 297, certified 297/297, errors 0, capacity misses 0.
+- bpic13cp, K=3: reference-qualified 297, certified 297/297, errors 0, capacity misses 0.
+- rtfm, K=0: reference-qualified 297, certified 297/300, errors 0, capacity misses 0.
+- rtfm, K=1: reference-qualified 299, certified 299/300, errors 0, capacity misses 0.
+- rtfm, K=2: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- rtfm, K=3: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- sepsis, K=0: reference-qualified 144, certified 144/210, errors 0, capacity misses 0.
+- sepsis, K=1: reference-qualified 195, certified 195/210, errors 0, capacity misses 0.
+- sepsis, K=2: reference-qualified 204, certified 204/210, errors 0, capacity misses 0.
+- sepsis, K=3: reference-qualified 210, certified 210/210, errors 0, capacity misses 0.
+- hospital, K=0: reference-qualified 262, certified 262/300, errors 0, capacity misses 0.
+- hospital, K=1: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- hospital, K=2: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- hospital, K=3: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+<!-- utility-results:end -->
