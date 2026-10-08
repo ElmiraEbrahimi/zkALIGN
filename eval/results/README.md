@@ -94,3 +94,27 @@ Source: utility_summary.csv, utility_cases.csv, and audit-reports/<dataset>-k<K>
 - hospital, K=2: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
 - hospital, K=3: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
 <!-- utility-results:end -->
+
+## Above-threshold utility checks
+
+All 160 above-threshold case-threshold pairs were checked with the gnark R1CS
+solver using the saved PM4Py alignment and its true cost. All 160 witnesses
+were rejected by unsatisfied constraints. There were no unexpected satisfactions
+or execution errors. No additional Groth16 proofs were generated.
+
+| Dataset | K=0 rejected/tested | K=1 rejected/tested | K=2 rejected/tested | K=3 |
+| --- | --- | --- | --- | --- |
+| BPI 2013 Closed Problems | 27/27 | 4/4 | 0/0 | 0/0 |
+| Road Traffic Fines | 3/3 | 1/1 | 0/0 | 0/0 |
+| Sepsis Cases | 66/66 | 15/15 | 6/6 | 0/0 |
+| Hospital Billing | 38/38 | 0/0 | 0/0 | 0/0 |
+| Total | 134/134 | 20/20 | 6/6 | 0/0 |
+
+The 140 K=0/K=2 rows were recovered from `utility-before-groth16.json` archives
+and checked against their saved solver receipts and frozen case metadata.
+The 20 K=1 rows were newly executed using the existing `solve` stage.
+Source: `utility_above_threshold.csv`, `utility_above_threshold_receipts.json`,
+and the `above_threshold_cases` / `above_threshold_rejected` columns in
+`utility_summary.csv`. The Groth16 case file and figure counts are unchanged.
+Solver rejection establishes failure of the supplied witness, not an exhaustive
+search over all possible alignments. The circuit and cost policy are unchanged.

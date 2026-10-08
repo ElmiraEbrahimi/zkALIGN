@@ -14,6 +14,12 @@
   "utility_last_audit_utc": "2026-10-08T11:01:40.665570+00:00",
   "utility_case_threshold_results": 4428,
   "utility_verified_proofs": 4268,
-  "utility_above_threshold_policy": "No proof attempted; retained as uncertified.",
+  "utility_above_threshold_policy": "No Groth16 proof attempted; retained as uncertified. All 160 reference-alignment witnesses rejected by the R1CS solver.",
+  "utility_above_threshold_checked": 160,
+  "utility_above_threshold_rejected": 160,
+  "utility_above_threshold_archived_checks": 140,
+  "utility_above_threshold_supplemental_checks": 20,
+  "utility_above_threshold_runner_revision": "35569aa",
+  "utility_above_threshold_evidence": "utility_above_threshold.csv and utility_above_threshold_receipts.json",
   "utility_evidence": "Saved successful witness/prove/verify records, proof files, and audit receipts checked."
 }
