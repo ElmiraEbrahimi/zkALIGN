@@ -259,6 +259,11 @@ def collect(data, out):
                 ),
             }
         )
+    negative_evidence = out / "utility_above_threshold.csv"
+    if negative_evidence.exists():
+        from eval.above_threshold import enrich_summary, read_csv
+
+        summary = enrich_summary(summary, rows, read_csv(negative_evidence))
     csv_write(out / "datasets.csv", datasets)
     csv_write(out / "utility_cases.csv", rows)
     csv_write(out / "utility_summary.csv", summary)
