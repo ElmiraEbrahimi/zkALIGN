@@ -6,22 +6,6 @@ Memory is RSS in bytes (plots use MiB). OS peaks are per fresh process, includin
 Operation times exclude loading/serialization. Worker times include them. Witness means gnark input encoding; proving includes constraint solving.
 Main-cohort timings are functional-run observations; repeated timings are the performance sample.
 
-- bpic13cp, K=0, solver: processed 297/297, reference-qualified 270, certified nan, errors 0. Source: utility_summary.csv.
-- bpic13cp, K=1, groth16: processed 297/297, reference-qualified 293, certified 293.0, errors 0. Source: utility_summary.csv.
-- bpic13cp, K=2, solver: processed 297/297, reference-qualified 297, certified nan, errors 0. Source: utility_summary.csv.
-- bpic13cp, K=3, solver: processed 297/297, reference-qualified 297, certified nan, errors 0. Source: utility_summary.csv.
-- hospital, K=0, solver: processed 300/300, reference-qualified 262, certified nan, errors 0. Source: utility_summary.csv.
-- hospital, K=1, groth16: processed 300/300, reference-qualified 300, certified 300.0, errors 0. Source: utility_summary.csv.
-- hospital, K=2, solver: processed 300/300, reference-qualified 300, certified nan, errors 0. Source: utility_summary.csv.
-- hospital, K=3, solver: processed 300/300, reference-qualified 300, certified nan, errors 0. Source: utility_summary.csv.
-- rtfm, K=0, solver: processed 300/300, reference-qualified 297, certified nan, errors 0. Source: utility_summary.csv.
-- rtfm, K=1, groth16: processed 300/300, reference-qualified 299, certified 299.0, errors 0. Source: utility_summary.csv.
-- rtfm, K=2, solver: processed 300/300, reference-qualified 300, certified nan, errors 0. Source: utility_summary.csv.
-- rtfm, K=3, solver: processed 300/300, reference-qualified 300, certified nan, errors 0. Source: utility_summary.csv.
-- sepsis, K=0, solver: processed 210/210, reference-qualified 144, certified nan, errors 0. Source: utility_summary.csv.
-- sepsis, K=1, groth16: processed 210/210, reference-qualified 195, certified 195.0, errors 0. Source: utility_summary.csv.
-- sepsis, K=2, solver: processed 210/210, reference-qualified 204, certified nan, errors 0. Source: utility_summary.csv.
-- sepsis, K=3, solver: processed 210/210, reference-qualified 210, certified nan, errors 0. Source: utility_summary.csv.
 
 ## Repeated performance samples
 - bpic13cp alignment operation_seconds: mean 0.00149947227, SD 0.00139999821, n=15. Source: performance_summary.csv / repeated_timings.csv.
@@ -60,14 +44,53 @@ Main-cohort timings are functional-run observations; repeated timings are the pe
 - Negative integrity attempts 3263, unexpected outcomes 0. Valid controls and duplicate-count invariants are reported separately in integrity.csv.
 - Distinct-certificate audit N=100: 100 certified, 0.077958 s audit operation. Source: scal_population_proofs.csv.
 - Distinct-certificate audit N=300: 299 certified, 0.233085 s audit operation. Source: scal_population_proofs.csv.
-- bpic13cp compile: operation 0.137131 s, process RSS 119.81 MiB. Source: measurements.csv, measurement=compile.
-- bpic13cp setup: operation 1.163871 s, process RSS 95.83 MiB. Source: measurements.csv, measurement=setup.
-- hospital compile: operation 0.381053 s, process RSS 128.17 MiB. Source: measurements.csv, measurement=compile.
-- hospital setup: operation 1.539555 s, process RSS 104.47 MiB. Source: measurements.csv, measurement=setup.
-- rtfm compile: operation 0.093433 s, process RSS 64.73 MiB. Source: measurements.csv, measurement=compile.
-- rtfm setup: operation 1.337697 s, process RSS 59.91 MiB. Source: measurements.csv, measurement=setup.
-- sepsis compile: operation 2.001006 s, process RSS 1913.20 MiB. Source: measurements.csv, measurement=compile.
-- sepsis setup: operation 33.804120 s, process RSS 1036.94 MiB. Source: measurements.csv, measurement=setup.
+
+## Repeated compilation and setup
+- bpic13cp compile: 0.13 s (SD 0.00), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- bpic13cp setup: 1.27 s (SD 0.06), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- hospital compile: 0.23 s (SD 0.00), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- hospital setup: 1.30 s (SD 0.05), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- rtfm compile: 0.04 s (SD 0.00), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- rtfm setup: 0.78 s (SD 0.02), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- sepsis compile: 1.98 s (SD 0.04), n=5. Source: setup_summary.csv / repeated_setup.csv.
+- sepsis setup: 8.76 s (SD 0.13), n=5. Source: setup_summary.csv / repeated_setup.csv.
+
+## Interpretation
+overhead_summary.csv separates each selected case from the pooled selected sample. It is not a population-wide estimate.
+Prover operation time = alignment + witness encoding + proving. Overhead is that sum divided by alignment time for each paired repetition; setup, loading and verification are excluded.
+dataset_median_case_overhead is the median of the selected cases' mean paired overhead ratios. operation_overhead_median is the median of individual paired ratios.
+Error bars denote sample standard deviation (not confidence intervals). Model scaling has three repeats; per-case overhead has five.
+scal_model_summary.csv reports places, transitions and arcs as well as constraints. Larger parallel nets are associated with higher circuit cost; these measurements do not isolate a single causal factor.
+scal_length.csv contains functional-run observations. scal_length_repeated.csv contains medians and ranges for only the selected repeated Sepsis cases.
+Each figure has its own source CSV under plotting/data. Plotting and reporting never start benchmark workers.
+A population of 300 included 299 accepted certificates, not 300. Large synthetic roster timings are root checks only.
 
 ## Completeness
 Missing experiment files: none
+
+<!-- utility-results:start -->
+## Utility preservation
+
+All four thresholds use real Groth16 proofs. Verified proofs: 4,268.
+Only reference-qualified cases are proved. Above-threshold cases remain uncertified without a proof attempt.
+Thus utility measures successful certification coverage, not adversarial rejection or universal soundness.
+The earlier interrupted run log is historical; completed per-case records and all 16 audit reports are the evidence.
+Source: utility_summary.csv, utility_cases.csv, and audit-reports/<dataset>-k<K>.json.
+
+- bpic13cp, K=0: reference-qualified 270, certified 270/297, errors 0, capacity misses 0.
+- bpic13cp, K=1: reference-qualified 293, certified 293/297, errors 0, capacity misses 0.
+- bpic13cp, K=2: reference-qualified 297, certified 297/297, errors 0, capacity misses 0.
+- bpic13cp, K=3: reference-qualified 297, certified 297/297, errors 0, capacity misses 0.
+- rtfm, K=0: reference-qualified 297, certified 297/300, errors 0, capacity misses 0.
+- rtfm, K=1: reference-qualified 299, certified 299/300, errors 0, capacity misses 0.
+- rtfm, K=2: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- rtfm, K=3: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- sepsis, K=0: reference-qualified 144, certified 144/210, errors 0, capacity misses 0.
+- sepsis, K=1: reference-qualified 195, certified 195/210, errors 0, capacity misses 0.
+- sepsis, K=2: reference-qualified 204, certified 204/210, errors 0, capacity misses 0.
+- sepsis, K=3: reference-qualified 210, certified 210/210, errors 0, capacity misses 0.
+- hospital, K=0: reference-qualified 262, certified 262/300, errors 0, capacity misses 0.
+- hospital, K=1: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- hospital, K=2: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+- hospital, K=3: reference-qualified 300, certified 300/300, errors 0, capacity misses 0.
+<!-- utility-results:end -->
