@@ -145,6 +145,31 @@ population experiments instead verify genuinely distinct certificates.
 
 ## Interpretation and limits
 
+### Supplemental above-threshold utility checks
+
+After the all-threshold Groth16 run, run from the repository root:
+
+```sh
+go build -o build/zkalign-eval ./cmd/zkalign-eval
+PYTHONPATH=src .venv/bin/python -m eval.above_threshold
+```
+
+This reuses the frozen cohorts and compiled R1CS. It checks archived solver
+receipts against the original cases and runs only missing `solve` stages.
+It never invokes compilation, setup, proving, or verification. The initial
+supplement reused 140 archived checks and executed 20 missing K=1 checks.
+Repeated invocations reuse saved supplemental receipts.
+
+`utility_above_threshold.csv` records one row per above-threshold case and K.
+`utility_above_threshold_receipts.json` preserves the raw solver receipts without
+private witnesses. Both are published under `eval/results/`, alongside two
+additional count columns in `utility_summary.csv`. Execution errors are not
+constraint rejections. Unexpected satisfaction and errors are saved and cause
+the command to fail. These are witness-level solver checks, not negative
+Groth16 proof attempts or a proof of alignment optimality.
+
+### Measurement interpretation
+
 - `operation_seconds` is a monotonic wall-clock measurement around the named
   operation. `worker_seconds` includes startup, artifact loading and serialization.
 - `process_peak_rss_bytes` is the OS high-water RSS of that one worker, not a

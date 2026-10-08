@@ -40,6 +40,8 @@ PUBLISHED_FILES = {
     "uncertified_cases.csv",
     "utility_cases.csv",
     "utility_summary.csv",
+    "utility_above_threshold.csv",
+    "utility_above_threshold_receipts.json",
 }
 
 
@@ -224,6 +226,9 @@ def publish_utility(root, destination):
         save(destination / "audit-reports" / filename, audit)
         if filename.endswith("-k1.json"):
             save(destination / "audit-reports" / filename.replace("-k1", ""), audit)
+    for filename in ("utility_above_threshold.csv", "utility_above_threshold_receipts.json"):
+        if (results / filename).exists():
+            shutil.copy2(results / filename, destination / filename)
     provenance_path = destination / "provenance.json"
     provenance = (
         json.loads(provenance_path.read_text()) if provenance_path.exists() else {}
@@ -243,6 +248,18 @@ def publish_utility(root, destination):
         utility_evidence="Saved successful witness/prove/verify records, proof files, and audit receipts checked.",
         private_artifacts_included=False,
     )
+    if (results / "utility_above_threshold.csv").exists():
+        from eval.above_threshold import read_csv
+
+        negative = read_csv(results / "utility_above_threshold.csv")
+        provenance.update(
+            utility_above_threshold_checked=len(negative),
+            utility_above_threshold_rejected=sum(
+                r["reason"] == "constraint_rejected" for r in negative
+            ),
+            utility_above_threshold_evidence="utility_above_threshold.csv and utility_above_threshold_receipts.json",
+            utility_above_threshold_policy="No Groth16 proof attempted; retained as uncertified. Supplemental R1CS solver outcomes are recorded separately.",
+        )
     save(provenance_path, provenance)
     readme = destination / "README.md"
     old = readme.read_text() if readme.exists() else "# Evaluation results\n"
