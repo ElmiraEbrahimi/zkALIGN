@@ -93,6 +93,35 @@ actual auditor over the saved certificates.
 
 ## Directory map and outputs
 
+### Repeated capacity performance only
+
+For the controlled performance figure, keep the Sepsis model, case AG,
+`B_sigma=185` and `K=1` fixed and vary `B_gamma=32,64,128,256,384`:
+
+```sh
+go build -o build/zkalign-eval ./cmd/zkalign-eval
+PYTHONPATH=src .venv/bin/python -m eval.capacity_performance --repeat 5 --threads 14
+```
+
+This is a new, self-contained five-repeat benchmark, not a full evaluation run.
+Unlike the older capacity command, it repeats compilation and setup as well as
+witness construction and proving. Verification checks every generated proof but
+need not appear in the figure. Each stage uses a fresh process. Results are saved
+under `outputs/evaluation/capacity-performance/results/`:
+
+- `capacity_performance_runs.csv`: individual observations, memory in bytes,
+  time in seconds, constraint counts, artifact sizes and measurement paths.
+- `capacity_performance_summary.csv`: means and sample SDs, memory in decimal MB,
+  time in seconds, repetition counts and completion flags.
+
+Old results and utility evidence are unchanged. This benchmark deliberately does
+not pool historical runs with the new run. Repeating the same command reuses its
+own completed repetitions. A frozen worker binary and input/environment manifest
+prevent resuming with changed settings. Use a new `--output` directory if those
+settings change. An unfinished repetition is rerun, and a failed stage stops the
+command with its error saved. Only completed five-repeat summaries should be used
+for the final figure. Keep the machine awake and avoid CPU-heavy concurrent work.
+
 - `eval/data.py`: source retrieval, 80/20 case split, fixed random population,
   training-only Inductive Miner (noise 0.2), explicit unit-cost A* and replay.
 - `eval/test_data.py`: independent Dijkstra reference on 200 tiny examples.

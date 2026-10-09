@@ -15,6 +15,7 @@ build/
 # Keep datasets/README.md and deliberately published eval/results/ CSVs tracked.
 /datasets/raw/
 /outputs/
+/tmp/
 
 # Generated cryptographic artifacts, even when saved outside outputs/.
 *.r1cs
