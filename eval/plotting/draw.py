@@ -150,8 +150,12 @@ def utility(frame, path):
     finish(fig, path, height=4.8, top=0.85)
 
 
+@plt.rc_context({"font.serif": ["Times New Roman", "DejaVu Serif"], "mathtext.fontset": "stix"})
 def overhead(frame, path):
-    names = [n for n in LABELS if n in set(frame.dataset)]
+    titles = {"bpic13cp": "BPI 2013", "rtfm": "Road Traffic\nFines",
+              "sepsis": "Sepsis", "hospital": "Hospital\nBilling"}
+    names = [n for n in titles if n in set(frame.dataset)]
+    blue, red = "#2171b5", "#8c2d26"
     fig, axes = plt.subplots(1, len(names), squeeze=False, sharey=True)
     for ax, name in zip(axes[0], names):
         g = frame[frame.dataset == name].sort_values(["alignment_length", "index"])
@@ -161,35 +165,36 @@ def overhead(frame, path):
             g.operation_overhead_mean,
             yerr=g.operation_overhead_sd,
             fmt="o",
-            color=BLUE,
+            color=blue,
             capsize=2,
             markersize=3,
         )
         ax.axhline(
             g.dataset_median_case_overhead.iloc[0],
-            color=RED,
+            color=red,
             linestyle="--",
             linewidth=0.8,
         )
         labels = [
-            s.replace("median", "mid").replace("long+NGA", "long/NGA") for s in g.roles
+            s.replace("median", "Median").replace("short", "Short").replace("long+NGA", "Long/NGA").replace("long", "Long") for s in g.roles
         ]
         ax.set_xticks(x, labels, rotation=55, ha="right")
-        ax.set_title(LABELS[name])
+        ax.set_title(titles[name], pad=8)
         ax.set_yscale("log")
+        ax.set_ylim(1, 1000)
         ax.set_xlim(-0.5, len(g) - 0.5)
-    axes[0, 0].set_ylabel("Prover / plaintext time")
+    axes[0, 0].set_ylabel("Operation-time overhead (×)")
     fig.legend(
         handles=[
             Line2D(
                 [],
                 [],
-                color=BLUE,
+                color=blue,
                 marker="o",
                 linestyle="none",
                 label="Case mean +/- SD (5 repeats)",
             ),
-            Line2D([], [], color=RED, linestyle="--", label="Median of case means"),
+            Line2D([], [], color=red, linestyle="--", label="Median of case means"),
         ],
         loc="upper center",
         ncol=2,
@@ -197,18 +202,24 @@ def overhead(frame, path):
         handlelength=1.3,
         columnspacing=1,
     )
-    finish(fig, path, height=5.6, top=0.86)
+    finish(fig, path, height=5.6, top=0.84)
 
 
+@plt.rc_context({"font.serif": ["Times New Roman", "DejaVu Serif"], "mathtext.fontset": "stix"})
 def stage_plot(frame, path, stages):
     fig, axes = plt.subplots(1, 2)
-    names = [n for n in LABELS if n in set(frame.dataset)]
-    colors = [BLUE, RED, GREEN]
+    labels = {"bpic13cp": "BPI 2013", "rtfm": "Road Traffic\nFines",
+              "sepsis": "Sepsis", "hospital": "Hospital\nBilling"}
+    names = [n for n in labels if n in set(frame.dataset)]
+    colors = ["#2171b5", "#8c2d26", "#238b45"]
+    stage_labels = {"compile": "Compilation", "setup": "Setup",
+                    "witness": "Input-witness encoding", "prove": "Proof generation",
+                    "verify": "Verification"}
     for ax, metric, divisor, label in zip(
         axes,
         ("operation_seconds", "process_peak_rss_bytes"),
-        (1, 1024**2),
-        ("Operation time (s)", "Process peak RSS (MiB)"),
+        (1, 1_000_000),
+        ("Operation time (s)", "Peak process memory (MB)"),
     ):
         for i, phase in enumerate(stages):
             g = (
@@ -222,20 +233,25 @@ def stage_plot(frame, path, stages):
                 yerr=g["std"] / divisor,
                 color=colors[i],
                 fmt=["o", "s", "^"][i],
-                capsize=2,
-                markersize=3,
-                label=phase,
+                capsize=3,
+                elinewidth=1,
+                markerfacecolor="white",
+                markeredgewidth=0.9,
+                markersize=3.5,
+                label=stage_labels[phase],
             )
-        ax.set_xticks(range(len(names)), [LABELS[n] for n in names], rotation=20)
+        ax.set_xticks(range(len(names)), [labels[n] for n in names])
+        ax.set_xlim(-0.5, len(names) - 0.5)
         ax.set_yscale("log")
         ax.set_ylabel(label)
+        ax.set_xlabel("Log-specific circuit")
     fig.legend(
         *axes[0].get_legend_handles_labels(),
         loc="upper center",
         ncol=len(stages),
         frameon=False,
     )
-    finish(fig, path, height=4.8, top=0.85)
+    finish(fig, path, height=5.3, top=0.86)
 
 
 def models(frame, path):
@@ -355,7 +371,7 @@ DRAW = {
     "fig_capacity": capacity,
     "fig_trace_length": trace_length,
     "fig_population": population,
-    "fig_time_memory": lambda f, p: stage_plot(f, p, ["witness", "prove", "verify"]),
+    "fig_time_memory": lambda f, p: stage_plot(f, p, ["witness", "prove"]),
     "fig_setup_time_memory": lambda f, p: stage_plot(f, p, ["compile", "setup"]),
 }
 
