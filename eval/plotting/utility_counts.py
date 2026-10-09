@@ -63,7 +63,7 @@ def make_figure(rows, percent=False):
         color=BLUE,
         edgecolor=BLUE,
         linewidth=0.3,
-        label="zkALIGN proofs",
+        label="zkALIGN",
     )
     for center, a, b, a_height, b_height in zip(
         x, reference, certified, reference_height, certified_height
