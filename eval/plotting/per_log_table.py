@@ -45,7 +45,7 @@ def generate(results=Path("eval/results"), output=Path("eval/plotting/data/tab_p
             ))
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=rows[0].keys())
+        writer = csv.DictWriter(stream, fieldnames=rows[0].keys(), lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
     for row in rows:
