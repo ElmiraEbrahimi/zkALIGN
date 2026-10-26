@@ -1,7 +1,6 @@
 """Regression checks for benchmark defaults and saved-result compatibility."""
 
 import inspect
-from pathlib import Path
 import unittest
 
 import pandas as pd
@@ -20,11 +19,23 @@ class RepetitionTests(unittest.TestCase):
             self.assertEqual(inspect.signature(fn).parameters["repetitions"].default, 10)
 
     def test_overhead_accepts_ten_and_rejects_missing_repeat(self):
-        results = Path(__file__).parent / "results"
-        pairs = pd.read_csv(results / "overhead.csv")
-        timings = pd.read_csv(results / "repeated_timings.csv")
-        summary = pd.read_csv(results / "overhead_summary.csv")
-        summary = summary[summary.scope == "case"].copy()
+        # Synthetic fixture: tests must not depend on local benchmark outputs.
+        pair_rows, timing_rows, summary_rows = [], [], []
+        for dataset, cases in (("bpic13cp", 3), ("hospital", 3), ("rtfm", 3), ("sepsis", 4)):
+            for index in range(cases):
+                for repeat in range(5):
+                    key = dict(dataset=dataset, index=index, repeat=repeat)
+                    pair_rows.append(dict(**key, plaintext_alignment_seconds=1.,
+                                          prover_operation_seconds=2., operation_overhead=2.))
+                    for stage, seconds in (("alignment", 1.), ("witness", .25), ("prove", .75), ("verify", .01)):
+                        timing_rows.append(dict(**key, stage=stage, operation_seconds=seconds,
+                                                threads="default", status="ok"))
+                row = dict(dataset=dataset, index=index, n=5, dataset_median_case_overhead=2.)
+                for metric, mean in (("plaintext_alignment_seconds", 1.), ("prover_operation_seconds", 2.), ("operation_overhead", 2.)):
+                    row[metric + "_mean"] = mean
+                    row[metric + "_sd"] = 0.
+                summary_rows.append(row)
+        pairs, timings, summary = map(pd.DataFrame, (pair_rows, timing_rows, summary_rows))
         validate(pairs, timings, summary)
         # Duplicate fixture observations with new indices, not real measurements.
         def doubled(frame):

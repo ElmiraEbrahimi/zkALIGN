@@ -63,7 +63,7 @@ Operation time excludes startup, artifact loading, and serialization.
 Memory is the operating system's peak RSS of each fresh worker process;
 plot values use decimal MB. Error bars show sample standard deviations.
 
-Committed numerical results are in [results/](results/).
+Generated results are local and Git-ignored under `outputs/` and `eval/results/`.
 [plotting/README.md](plotting/README.md) explains how to regenerate figures
 without rerunning experiments. Private inputs and cryptographic artifacts stay
 under Git-ignored `outputs/`.

@@ -12,9 +12,10 @@ build/
 *.test
 
 # Raw datasets and local runs, including private cases, salts, keys, and proofs.
-# Keep datasets/README.md and deliberately published eval/results/ CSVs tracked.
+# Dataset instructions and evaluation source code remain tracked.
 /datasets/raw/
 /outputs/
+/eval/results/
 /tmp/
 
 # Generated cryptographic artifacts, even when saved outside outputs/.
@@ -38,7 +39,6 @@ private-*.json
 # Ignore rules do not remove files that Git already tracks.
 /paper/
 /docs/
-/eval/results/evaluation_*.tex
 *.pdf
 *.zip
 *.aux
@@ -54,5 +54,4 @@ private-*.json
 *.swo
 *~
 
-# Do not ignore eval/results/*.csv or eval/plotting/data/*.csv.
-# Those are the reproducible numerical results and per-figure source data.
+# Per-figure reference CSVs in eval/plotting/data/ remain tracked.

@@ -1,10 +1,13 @@
 # zkALIGN
 
-zkALIGN verifies alignment-based conformance claims with zero-knowledge proofs.
-A log owner proves that a committed trace admits a valid, complete alignment
-within a public cost threshold, without revealing the trace, alignment, or
-exact cost. Python and PM4Py prepare the inputs; Go and gnark generate and
-verify Groth16 proofs over BN254.
+zkALIGN lets organizations show auditors that recorded process executions
+conform to a process model without sharing sensitive event logs. It uses
+zero-knowledge proofs to verify that a committed trace has a complete, valid
+alignment within an agreed cost threshold, while keeping the trace, alignment,
+and exact cost private.
+
+The implementation uses Python and PM4Py for alignment computation and Go
+with gnark for Groth16 proof generation and verification.
 
 ## Installation
 
@@ -54,3 +57,4 @@ make prove
 
 Run tests without starting the evaluation with `make eval-test`.
 Private witnesses, salts, keys, and local runs remain in Git-ignored directories.
+Generated results in `eval/results/` are also local and Git-ignored.
