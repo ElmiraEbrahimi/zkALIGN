@@ -1,4 +1,4 @@
-"""Generate paper artifacts from measured CSVs; never invent missing results."""
+"""Summarize saved measurements and generate evaluation plots."""
 
 import argparse
 from pathlib import Path
@@ -27,21 +27,22 @@ def report(root):
     figures = results / "figures"
     figures.mkdir(parents=True, exist_ok=True)
     notes = [
-        "# Evaluation results",
-        "",
-        "Generated from raw stage measurements. A solver success is not a proof.",
-        "Research-only case CSVs can contain costs/IDs; do not include them in a live auditor package.",
-        "Memory is RSS in bytes (plots use MiB). OS peaks are per fresh process, including input loading and serialization.",
-        "Operation times exclude loading/serialization. Worker times include them. Witness means gnark input encoding; proving includes constraint solving.",
-        "Main-cohort timings are functional-run observations; repeated timings are the performance sample.",
-        "",
+        "# Evaluation results", "",
+        "Summaries and figures generated from saved measurements.", "",
+        "- Utility: utility_summary.csv and utility_cases.csv.",
+        "- Performance: performance_summary.csv and repeated_timings.csv.",
+        "- Compilation/setup: setup_summary.csv and repeated_setup.csv.",
+        "- Scalability: scal_model_summary.csv and scal_*.csv.",
+        "- Integrity: integrity.csv.", "",
+        "Operation times exclude startup, loading, and serialization. Worker times include them.",
+        "Raw RSS values are bytes; plots use decimal MB and whole-process peaks.",
+        "Error bars show sample standard deviations. Solver checks are not verified proofs.",
     ]
 
     def read(name):
         p = results / name
         return pd.read_csv(p) if p.exists() else pd.DataFrame()
 
-    datasets = read("datasets.csv")
     utility = read("utility_summary.csv")
     cases = read("utility_cases.csv")
     if not cases.empty and not utility.empty:
@@ -173,26 +174,6 @@ def report(root):
             overhead_summary(pd.DataFrame(pairs), cases).to_csv(
                 results / "overhead_summary.csv", index=False
             )
-    if not utility.empty:
-        for _, r in utility.iterrows():
-            notes.append(
-                f"- {r.dataset}, K={r.K}, {r['mode']}: processed {r.processed}/{r.N}, reference-qualified {r.reference_qualified}, "
-                + (
-                    f"certified {r.certified}"
-                    if r["mode"] == "groth16"
-                    else f"solver-satisfied {r.get('solver_satisfied', 'unavailable')}, solver-rejected {r.get('solver_rejected', 'unavailable')}"
-                )
-                + f", agreement {r.get('agreement_pct', 'unavailable')}%, errors {r.errors}. Source: utility_summary.csv."
-            )
-    if aggregates:
-        notes += ["", "## Repeated performance samples"]
-        for row in aggregates:
-            if row["metric"] in ("operation_seconds", "process_peak_rss_bytes"):
-                notes.append(
-                    f"- {row['dataset']} {row['stage']} {row['metric']}: "
-                    f"mean {row['mean']:.9g}, SD {row['std']:.9g}, n={row['n']}. "
-                    f"Source: performance_summary.csv / {row['source']}."
-                )
     if not repeated_setup.empty:
         setup_rows = []
         for (dataset, phase), group in repeated_setup.groupby(["dataset", "stage"]):
@@ -233,47 +214,6 @@ def report(root):
                 results / "scal_length_repeated.csv", index=False
             )
     generate_figures(results, root / "plotting", figures)
-    integrity = read("integrity.csv")
-    if not integrity.empty:
-        notes.append(
-            f"- Integrity attempts {int(integrity.attempts.sum())}, unexpected outcomes {int(integrity.unexpected.sum())}, inapplicable mutations {int(integrity.skipped.sum())}. Source: integrity.csv."
-        )
-        negatives = integrity[integrity.expected == "reject"]
-        notes.append(
-            f"- Negative integrity attempts {int(negatives.attempts.sum())}, "
-            f"unexpected outcomes {int(negatives.unexpected.sum())}. Valid controls and "
-            "duplicate-count invariants are reported separately in integrity.csv."
-        )
-    proof_pop = read("scal_population_proofs.csv")
-    if not proof_pop.empty:
-        for _, r in proof_pop.iterrows():
-            notes.append(
-                f"- Distinct-certificate audit N={int(r.N)}: {int(r.certified)} certified, "
-                f"{r.operation_seconds:.6f} s audit operation. Source: scal_population_proofs.csv."
-            )
-    setup_stats = read("setup_summary.csv")
-    notes += ["", "## Repeated compilation and setup"]
-    if not setup_stats.empty:
-        for _, r in setup_stats[setup_stats.metric == "operation_seconds"].iterrows():
-            notes.append(
-                f"- {r.dataset} {r.stage}: {r['mean']:.2f} s (SD {r['std']:.2f}), n={int(r.n)}. Source: setup_summary.csv / repeated_setup.csv."
-            )
-    else:
-        notes.append(
-            "Repeated setup measurements unavailable. Initial functional runs are not substituted."
-        )
-    notes += [
-        "",
-        "## Interpretation",
-        "overhead_summary.csv separates each selected case from the pooled selected sample. It is not a population-wide estimate.",
-        "Prover operation time = alignment + witness encoding + proving. Overhead is that sum divided by alignment time for each paired repetition; setup, loading and verification are excluded.",
-        "dataset_median_case_overhead is the median of the selected cases' mean paired overhead ratios. operation_overhead_median is the median of individual paired ratios.",
-        "Error bars denote sample standard deviation (not confidence intervals). Model scaling has three repeats; per-case overhead has five.",
-        "scal_model_summary.csv reports places, transitions and arcs as well as constraints. Larger parallel nets are associated with higher circuit cost; these measurements do not isolate a single causal factor.",
-        "scal_length.csv contains functional-run observations. scal_length_repeated.csv contains medians and ranges for only the selected repeated Sepsis cases.",
-        "Each figure has its own source CSV under plotting/data. Plotting and reporting never start benchmark workers.",
-        "A population of 300 included 299 accepted certificates, not 300. Large synthetic roster timings are root checks only.",
-    ]
     expected = [
         "datasets.csv",
         "utility_cases.csv",
@@ -300,103 +240,6 @@ def report(root):
             "At least one cohort run is incomplete. Do not present it as a complete utility result."
         )
     (results / "README.md").write_text("\n".join(notes) + "\n")
-    tex = [
-        r"% Generated measurements, not a standalone manuscript.",
-        r"\subsection{Experimental Setup and Datasets}",
-        r"We evaluate individual trace certificates on four public event logs. Cases are split before discovery and audit populations are fixed before alignment computation. Each evaluation population has its own complete commitment root. Model and capacity configurations are compiled separately.",
-        r"\subsection{Utility Preservation and Certification Coverage}",
-        r"The plaintext reference uses zero cost for synchronous and silent model moves and unit cost for log and visible model moves. Certification counts only actual Groth16 proofs accepted by the auditor. Threshold modes and completed populations are reported below.",
-    ]
-    if not utility.empty:
-        for _, r in utility[
-            (utility["mode"] == "groth16")
-            & (utility.K == 1)
-            & (utility.processed == utility.N)
-        ].iterrows():
-            tex.append(
-                f"For {LABELS.get(r.dataset,r.dataset)}, {int(r.certified)} of {int(r.N)} cases were certified, compared with {int(r.reference_qualified)} qualifying cases in the plaintext reference."
-            )
-    tex += [
-        r"\subsection{Circuit and Audit Integrity}",
-        r"We distinguish deliberately invalid evidence from legitimate alternative executions. Duplicate submissions must leave the certified count unchanged, and rejected submissions must not prevent a subsequent valid certificate.",
-        r"\subsection{Performance Evaluation}",
-        r"Compilation, setup, witness encoding, proving, and verification run in separate operating-system processes. We report per-process peak resident memory and operation wall time separately from complete worker time. Memory sampling uses a nominal interval of 5 milliseconds. Sub-interval stages may have no operation sample, in which case only their process peak is reported. In gnark, witness encoding does not solve the constraints. Proving includes constraint solving.",
-        r"\subsection{Scalability Analysis}",
-        r"We vary alignment capacity while holding the Sepsis model fixed, and vary the size of controlled sequence, choice, parallel, and loop models at fixed trace and alignment capacities. Root reconstruction for large synthetic rosters is measured separately from verification of distinct real certificates.",
-    ]
-    if not integrity.empty:
-        tex.insert(
-            tex.index(r"\subsection{Performance Evaluation}"),
-            f"Across the four datasets, {int(negatives.attempts.sum())} deliberately invalid inputs were tested with {int(negatives.unexpected.sum())} unexpected outcomes. These are implementation checks, not a substitute for the cryptographic security argument.",
-        )
-    if aggregates and not repeat.empty:
-        performance_text = []
-        for name in sorted(repeat.dataset.unique()):
-            needed = {
-                ("prove", "operation_seconds"),
-                ("verify", "operation_seconds"),
-                ("prove", "process_peak_rss_bytes"),
-            }
-            available = {
-                (r["stage"], r["metric"]) for r in aggregates if r["dataset"] == name
-            }
-            if not needed <= available:
-                continue
-
-            def metric(phase, key):
-                return next(
-                    r
-                    for r in aggregates
-                    if r["dataset"] == name
-                    and r["stage"] == phase
-                    and r["metric"] == key
-                )["mean"]
-
-            performance_text.append(
-                f"For {LABELS[name]}, mean proving time was {metric('prove', 'operation_seconds'):.3f} s "
-                f"and mean verification time was {1000*metric('verify', 'operation_seconds'):.3f} ms. "
-                f"The mean prover-process peak was {metric('prove', 'process_peak_rss_bytes')/1024**2:.1f} MiB."
-            )
-        pos = tex.index(r"\subsection{Scalability Analysis}")
-        tex.insert(pos, " ".join(performance_text))
-    (results / "evaluation_results.tex").write_text("\n\n".join(tex) + "\n")
-    tables = [
-        r"% Requires booktabs. Tables summarize complete measured runs only.",
-        r"\begin{table}[t]\centering\small",
-        r"\caption{Evaluation models and frozen audit populations.}",
-        r"\begin{tabular}{lrrrrrr}\toprule",
-        r"Log & Cases & Activities & Places & Transitions & $B_\gamma$ & Constraints\\\midrule",
-    ]
-    if not datasets.empty:
-        for _, r in datasets.iterrows():
-            tables.append(
-                f"{LABELS.get(r.dataset, r.dataset)} & {int(r.population)} & "
-                f"{int(r.activities)} & {int(r.places)} & {int(r.transitions)} & "
-                f"{int(r.alignment_capacity)} & {int(r.constraints)}" + r"\\"
-            )
-    tables += [r"\bottomrule\end{tabular}\end{table}"]
-    (results / "evaluation_tables.tex").write_text("\n".join(tables) + "\n")
-    captions = {
-        "fig_utility": "Threshold outcomes at $K=0,1,2,3$. Blue squares show the share certified by Groth16 proofs and red circles show the plaintext reference. Triangles, if present, denote solver checks rather than certificates. The denominator includes every case in each cohort.",
-        "fig_overhead": "Per-case mean operation overhead with sample-standard-deviation error bars over five paired repetitions. Dataset medians are calculated across selected case means, not across the whole population. The protected computation includes plaintext alignment, witness encoding, and proving. Setup and artifact loading are excluded from these operation times and recorded separately.",
-        "fig_time_memory": "Mean operation time and mean per-process peak resident memory for witness encoding, proving, and verification on the selected cases. Error bars show sample standard deviation across the selected cases and repetitions, not only within-case variability. Each stage and repetition runs in a fresh process. Process peaks include loaded artifacts and serialization. Proving includes constraint solving.",
-        "fig_setup_time_memory": "Compilation and setup measured independently in fresh processes, with five repetitions per model. Points and error bars show the mean and sample standard deviation. Time refers to the named operation, while resident memory is the peak of the complete worker process.",
-        "fig_model_scalability": "Controlled model scaling for sequence, choice, parallel, and loop structures. Trace capacity is 128 and alignment capacity is 256 for every model. Proving times show the mean and sample standard deviation of three repetitions per model. Structural counts are supplied in the figure CSV.",
-        "fig_capacity": "Effect of alignment capacity for the fixed Sepsis model and a trace capacity of 185. Coverage counts all held-out traces whose reference alignment fits, regardless of whether its cost meets the audit threshold.",
-        "fig_trace_length": "Single functional-run proving times for certified Sepsis cases at fixed capacities, with selected-case repeated medians and minimum-to-maximum ranges overlaid. Repeated measurements are available for four selected cases only.",
-        "fig_population": "Fresh-process root validation for synthetic rosters of distinct commitments, with means and sample-standard-deviation error bars over three repetitions. This experiment measures population-root checking, not verification of an equal number of proofs. Separate experiments audit 100 and 300 cases with 100 and 299 accepted certificates, respectively.",
-    }
-    figure_tex = [r"% Requires graphicx. Copy the accompanying figures directory."]
-    for name, caption in captions.items():
-        if (figures / (name + ".pdf")).exists():
-            figure_tex += [
-                r"\begin{figure}[t]\centering",
-                r"\includegraphics[width=\linewidth]{figures/" + name + ".pdf}",
-                r"\caption{" + caption + "}",
-                r"\label{fig:eval-" + name.removeprefix("fig_") + "}",
-                r"\end{figure}",
-            ]
-    (results / "evaluation_figures.tex").write_text("\n".join(figure_tex) + "\n")
     return figures
 
 

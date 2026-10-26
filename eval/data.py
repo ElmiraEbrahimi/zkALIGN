@@ -263,11 +263,21 @@ def prepare(name, out, limit=300, seed=42, timeout=120):
     return metadata
 
 
-if __name__ == "__main__":
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=ROOT / "outputs/evaluation/data")
-    parser.add_argument("--datasets", nargs="+", default=list(DATASETS))
+    parser.add_argument("--datasets", nargs="+", choices=list(DATASETS), default=list(DATASETS))
     parser.add_argument("--limit", type=int, default=300)
-    args = parser.parse_args()
+    parser.add_argument("--download-only", action="store_true",
+                        help="Download and verify source logs without preparing models")
+    args = parser.parse_args(argv)
     for name in args.datasets:
-        print(json.dumps(prepare(name, args.out, args.limit), default=str), flush=True)
+        if args.download_only:
+            path, _ = download(name)
+            print(path, flush=True)
+        else:
+            print(json.dumps(prepare(name, args.out, args.limit), default=str), flush=True)
+
+
+if __name__ == "__main__":
+    main()

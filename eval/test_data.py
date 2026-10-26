@@ -1,9 +1,11 @@
 import heapq
 import itertools
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 import pm4py
 from pm4py.objects.log.obj import Trace, Event
-from eval.data import align, config_from_export
+from eval.data import align, config_from_export, main
 from scripts.healthcare_pipeline import export_circuit_model, classify_moves
 
 
@@ -39,6 +41,14 @@ def dijkstra(events, model):
                 best[(p, m)] = nc
                 heapq.heappush(queue, (nc, p, m))
     raise AssertionError("no complete alignment")
+
+
+class DownloadCommandTests(unittest.TestCase):
+    def test_download_only_does_not_prepare_models(self):
+        with patch("eval.data.download", return_value=(Path("sepsis.xes.gz"), {})) as download, patch("eval.data.prepare") as prepare, patch("builtins.print"):
+            main(["--download-only", "--datasets", "sepsis"])
+        download.assert_called_once_with("sepsis")
+        prepare.assert_not_called()
 
 
 class OracleTests(unittest.TestCase):

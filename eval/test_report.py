@@ -30,7 +30,7 @@ class ReportTests(unittest.TestCase):
             report(tmp)
             self.assertFalse((p / "figures/fig_utility.pdf").exists())
             self.assertIn("incomplete", (p / "README.md").read_text())
-            self.assertNotIn("2 of 210", (p / "evaluation_results.tex").read_text())
+            self.assertFalse(list(p.glob("*.tex")))
 
 
 if __name__ == "__main__":

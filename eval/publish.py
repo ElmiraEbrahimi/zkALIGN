@@ -16,9 +16,6 @@ PUBLISHED_FILES = {
     "environment.json",
     "performance_environment.json",
     "utility_environment.json",
-    "evaluation_results.tex",
-    "evaluation_tables.tex",
-    "evaluation_figures.tex",
     "artifact_sizes.csv",
     "datasets.csv",
     "integrity.csv",
@@ -278,18 +275,11 @@ def publish_utility(root, destination):
         start,
         "## Utility preservation",
         "",
-        f"All four thresholds use real Groth16 proofs. Verified proofs: {provenance['utility_verified_proofs']:,}.",
-        "Only reference-qualified cases are proved. Above-threshold cases remain uncertified without a proof attempt.",
-        "Thus utility measures successful certification coverage, not adversarial rejection or universal soundness.",
-        "The earlier interrupted run log is historical; completed per-case records and all 16 audit reports are the evidence.",
-        "Source: utility_summary.csv, utility_cases.csv, and audit-reports/<dataset>-k<K>.json.",
+        f"Verified proofs across four thresholds: {provenance['utility_verified_proofs']:,}.",
+        "Above-threshold cases remain in the population as uncertified.",
+        "See utility_summary.csv, utility_cases.csv, and audit-reports/ for per-log outcomes.",
         "",
     ]
-    for r in summary:
-        block.append(
-            f"- {r['dataset']}, K={r['K']}: reference-qualified {r['reference_qualified']}, "
-            f"certified {r['certified']}/{r['N']}, errors {r['errors']}, capacity misses {r['missed_capacity']}."
-        )
     block.extend([end, ""])
     readme.write_text(text.rstrip() + "\n\n" + "\n".join(block))
     return destination

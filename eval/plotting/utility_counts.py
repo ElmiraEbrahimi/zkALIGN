@@ -38,8 +38,11 @@ RED, BLUE = "#8c2d26", "#2171b5"
         "pdf.fonttype": 42,
     }
 )
-def make_figure(rows, percent=False):
-    fig, ax = plt.subplots(figsize=(12.2 / 2.54, 5.2 / 2.54))
+def make_figure(rows, percent=False, height_cm=5.2):
+    fig, ax = plt.subplots(figsize=(12.2 / 2.54, height_cm / 2.54))
+    # Preserve the physical space for text when shortening the plotting area.
+    plot_height = height_cm - 5.2 * (0.27 + 0.17)
+    text_scale = (5.2 * (0.83 - 0.27)) / plot_height
     x = np.array([5 * DATASETS.index(r["dataset"]) + int(r["K"]) for r in rows])
     reference = np.array([int(r["reference_qualified"]) for r in rows])
     certified = np.array([int(r["certified"]) for r in rows])
@@ -102,7 +105,7 @@ def make_figure(rows, percent=False):
         group = [r for r in rows if r["dataset"] == name]
         ax.text(
             5 * DATASETS.index(name) + 1.5,
-            -0.17,
+            -0.17 * text_scale,
             LABELS[name] + "\n" + rf"$N={int(group[0]['N'])}$",
             transform=ax.get_xaxis_transform(),
             ha="center",
@@ -129,13 +132,15 @@ def make_figure(rows, percent=False):
     ax.tick_params(axis="x", length=2, pad=3)
     ax.legend(
         loc="upper center",
-        bbox_to_anchor=(0.5, 1.23),
+        bbox_to_anchor=(0.5, 1 + 0.23 * text_scale),
         ncol=2,
         frameon=False,
         handlelength=1.4,
         columnspacing=1.5,
     )
-    fig.subplots_adjust(left=0.115, right=0.99, bottom=0.27, top=0.83)
+    fig.subplots_adjust(left=0.115, right=0.99,
+                        bottom=0.27 * 5.2 / height_cm,
+                        top=1 - 0.17 * 5.2 / height_cm)
     return fig, ax
 
 

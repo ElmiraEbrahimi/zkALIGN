@@ -89,6 +89,7 @@ class PublicationTests(unittest.TestCase):
             (results / "figures").mkdir(parents=True)
             (results / "utility_cases.csv").write_bytes(b"index\r\n0\r\n")
             (results / "unexpected.csv").write_text("not a published artifact")
+            (results / "evaluation_results.tex").write_text("manuscript export")
             for name in DATASETS:
                 save(
                     root / "data" / name / "measurements/audit-k1.json",
@@ -116,6 +117,7 @@ class PublicationTests(unittest.TestCase):
                 (destination / "utility_cases.csv").read_bytes(), b"index\n0\n"
             )
             self.assertFalse((destination / "unexpected.csv").exists())
+            self.assertFalse((destination / "evaluation_results.tex").exists())
             import json
 
             provenance = json.loads((destination / "provenance.json").read_text())

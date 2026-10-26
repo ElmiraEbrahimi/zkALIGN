@@ -54,7 +54,7 @@ def generate(results, data, figures):
     print(f"Validated all 65 paired repeats; plotted 60 repeats across 12 cases. Saved {csv} and comparison PDF.")
 
 
-def draw(frame, path):
+def draw(frame, path, height_cm=5.2):
     datasets = [("bpic13cp", "BPI 2013"), ("rtfm", "Road Traffic Fines"),
                 ("sepsis", "Sepsis"), ("hospital", "Hospital Billing")]
     def rank(role):
@@ -66,7 +66,10 @@ def draw(frame, path):
                          "axes.labelsize": 8, "axes.titlesize": 8, "xtick.labelsize": 7,
                          "ytick.labelsize": 7, "legend.fontsize": 8,
                          "axes.linewidth": .6, "pdf.fonttype": 42}):
-        fig, ax = plt.subplots(figsize=(12.2/2.54, 5.2/2.54))
+        fig, ax = plt.subplots(figsize=(12.2/2.54, height_cm/2.54))
+        # Keep label and legend spacing in physical units, not figure fractions.
+        plot_height = height_cm - 5.2 * (.30 + .17)
+        text_scale = (5.2 * (.83 - .30)) / plot_height
         ticks, tick_labels = [], []
         for group_index, (dataset, title) in enumerate(datasets):
             part = frame[frame.dataset == dataset]
@@ -83,7 +86,7 @@ def draw(frame, path):
                 case = part[part.case_index == i].iloc[0]
                 ticks.append(position)
                 tick_labels.append(f"{label(case.roles)}\n({int(case.alignment_length)})")
-            ax.text(x.mean(), -.33, title, ha="center", va="top",
+            ax.text(x.mean(), -.33 * text_scale, title, ha="center", va="top",
                     transform=ax.get_xaxis_transform(), fontsize=7.5)
         ax.set_xticks(ticks, tick_labels, fontsize=7)
         ax.set_xlim(-.75, 14.75)
@@ -96,10 +99,12 @@ def draw(frame, path):
         ax.set_axisbelow(True)
         ax.spines[["top", "right"]].set_visible(False)
         ax.tick_params(axis="x", length=2, pad=3)
-        ax.set_ylabel("Computation time (s, log scale)")
-        ax.legend(loc="upper center", bbox_to_anchor=(.5, 1.23), ncol=2,
+        ax.set_ylabel("Time (s)")
+        ax.legend(loc="upper center", bbox_to_anchor=(.5, 1 + .23 * text_scale), ncol=2,
                   frameon=False, handlelength=1.4, columnspacing=1.5)
-        fig.subplots_adjust(left=.115, right=.99, bottom=.30, top=.83)
+        fig.subplots_adjust(left=.115, right=.99,
+                            bottom=.30 * 5.2 / height_cm,
+                            top=1 - .17 * 5.2 / height_cm)
         fig.savefig(path)
         plt.close(fig)
 

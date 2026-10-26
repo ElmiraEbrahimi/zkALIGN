@@ -16,7 +16,7 @@ STAGES = ("compile", "setup", "witness", "prove", "verify")
 SERIES = (
     ("compile", "Compilation", "#2171b5", "o", "-"),
     ("setup", "Setup", "#8c2d26", "s", "--"),
-    ("witness", "Input-witness encoding", "#54278f", "^", ":"),
+    ("witness", "Witness encoding", "#54278f", "^", ":"),
     ("prove", "Proof generation", "#005a32", "D", "-."),
 )
 
@@ -80,8 +80,8 @@ def elapsed_summary(runs, summary):
                  "xtick.labelsize": 8, "ytick.labelsize": 8,
                  "legend.fontsize": 8, "axes.linewidth": 0.6,
                  "pdf.fonttype": 42})
-def draw(frame, path):
-    fig, axes = plt.subplots(1, 2, figsize=(12.2 / 2.54, 5.6 / 2.54))
+def draw(frame, path, height_cm=5.6):
+    fig, axes = plt.subplots(1, 2, figsize=(12.2 / 2.54, height_cm / 2.54))
     for phase, label, color, marker, style in SERIES:
         g = frame[frame.stage == phase].sort_values("alignment_capacity")
         for ax, metric, unit in ((axes[0], "worker_time", "s"), (axes[1], "mem", "mb")):
@@ -100,14 +100,17 @@ def draw(frame, path):
         ax.spines[["top", "right"]].set_visible(False)
     axes[0].set_yscale("log")
     axes[0].set_ylim(0.005, 20)
+    axes[0].set_yticks([0.01, 0.1, 1, 10])
     axes[0].set_ylabel("Time (s)")
     axes[1].set_ylim(-60, 2250)
     axes[1].set_yticks([0, 500, 1000, 1500, 2000])
-    axes[1].set_ylabel("Peak memory (MB)")
+    axes[1].set_ylabel("Memory (MB)")
     fig.legend(*axes[0].get_legend_handles_labels(), loc="upper center",
                ncol=2, frameon=False, columnspacing=2, handlelength=2.5)
-    fig.supxlabel(r"Alignment capacity $B_\gamma$ (moves)", fontsize=9, y=.035)
-    fig.subplots_adjust(left=.12, right=.975, bottom=.21, top=.76, wspace=.52)
+    fig.supxlabel(r"Alignment capacity $B_\gamma$ (moves)", fontsize=9,
+                  y=.035 * 5.6 / height_cm)
+    fig.subplots_adjust(left=.12, right=.975, bottom=.21 * 5.6 / height_cm,
+                        top=1 - .24 * 5.6 / height_cm, wspace=.52)
     fig.savefig(path)
     plt.close(fig)
 

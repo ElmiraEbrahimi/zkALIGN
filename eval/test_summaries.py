@@ -184,7 +184,7 @@ class SummaryTests(unittest.TestCase):
         self.assertEqual(result.iloc[0].prove_seconds_median, 2)
         self.assertEqual(result.iloc[0].prove_seconds_max, 5)
 
-    def test_readme_uses_repeated_setup_and_never_runs_workers(self):
+    def test_report_preserves_repeated_setup_and_never_runs_workers(self):
         with tempfile.TemporaryDirectory() as tmp:
             results = Path(tmp) / "results"
             results.mkdir()
@@ -208,8 +208,10 @@ class SummaryTests(unittest.TestCase):
             ):
                 report(tmp)
             text = (results / "README.md").read_text()
-            self.assertIn("8.76 s (SD 0.13)", text)
-            self.assertNotIn("33.8", text)
+            self.assertIn("setup_summary.csv", text)
+            saved = pd.read_csv(results / "setup_summary.csv")
+            self.assertAlmostEqual(saved.iloc[0]["mean"], 8.763499)
+            self.assertFalse(list(results.glob("*.tex")))
 
 
 if __name__ == "__main__":

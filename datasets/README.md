@@ -1,34 +1,25 @@
-# Healthcare data
+# Datasets
 
-The realistic experiment uses the **Sepsis Cases - Event Log** published by
-Felix Mannhardt through 4TU.ResearchData:
+The evaluation uses four public event logs from 4TU.ResearchData.
 
-- DOI: <https://doi.org/10.4121/uuid:915d2bfb-7e84-49ad-a286-dc35f063a460>
-- Dataset record: <https://data.4tu.nl/articles/_/12707639/1>
-- Version: 1 (2016)
-- Expected file: `Sepsis Cases - Event Log.xes.gz`
-- Expected project-local MiMC fingerprint: `2609148250783286284f49dc67220f63465834e094537a61537001312044c01f`
-- Terms: 4TU General Terms of Use, as listed on the dataset record
+| Dataset | Identifier | Source |
+| --- | --- | --- |
+| BPI Challenge 2013, Closed Problems | `bpic13cp` | [DOI](https://doi.org/10.4121/uuid:c2c3b154-ab26-4b31-a0e8-8f2350ddac11) |
+| Road Traffic Fine Management Process | `rtfm` | [DOI](https://doi.org/10.4121/uuid:270fd440-1057-4fb9-89a9-b699b47990f5) |
+| Sepsis Cases | `sepsis` | [DOI](https://doi.org/10.4121/uuid:915d2bfb-7e84-49ad-a286-dc35f063a460) |
+| Hospital Billing | `hospital` | [DOI](https://doi.org/10.4121/uuid:76c46b83-c930-4798-a1c9-4be94dfeb741) |
 
-It is a real hospital event log with anonymized values. One case represents one
-patient's hospital pathway. The record describes roughly 1,000 cases, 15,000
-events, and 16 activities. Timestamps were randomized while durations within a
-trace were preserved.
-
-Download and verify it with:
+After installing the project, run from the repository root:
 
 ```bash
-python3 scripts/download_sepsis.py
+PYTHONPATH=src .venv/bin/python -m eval.data --download-only
 ```
 
-The downloaded data is intentionally ignored by Git. This repository records
-its source, version, and checksum instead of silently redistributing it.
+To download selected logs, add `--datasets sepsis hospital`.
+Files are saved as `datasets/raw/evaluation/<identifier>.xes.gz`, alongside
+their source metadata. Downloads are checked against the source DOI, file size,
+and project-local MiMC fingerprints in [sources.lock.json](../eval/sources.lock.json).
 
-The MiMC pin is computed with zkALIGN's length-framed `zkALIGN:file:v2`
-encoding. It is a project-local fingerprint, not a checksum published by 4TU.
-During migration the source file was first checked against its previously
-recorded publisher MD5 `b5671166ac71eb20680d3c74616c43d2`, then its MiMC
-fingerprint was computed using the Go implementation and checked in Python.
-The download script now verifies MiMC only.
-
-No artificial teaching dataset is used by the current circuit or proof command.
+The source records specify each dataset's authors, version, and terms of use.
+Raw logs are excluded from Git. The single-case demonstration uses a separate
+Sepsis cache downloaded by `make data`.

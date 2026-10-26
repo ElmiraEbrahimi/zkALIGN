@@ -213,13 +213,13 @@ def stage_plot(frame, path, stages):
     names = [n for n in labels if n in set(frame.dataset)]
     colors = ["#2171b5", "#8c2d26", "#238b45"]
     stage_labels = {"compile": "Compilation", "setup": "Setup",
-                    "witness": "Input-witness encoding", "prove": "Proof generation",
+                    "witness": "Witness encoding", "prove": "Proof generation",
                     "verify": "Verification"}
     for ax, metric, divisor, label in zip(
         axes,
         ("operation_seconds", "process_peak_rss_bytes"),
         (1, 1_000_000),
-        ("Operation time (s)", "Peak process memory (MB)"),
+        ("Operation time (s)", "Memory (MB)"),
     ):
         for i, phase in enumerate(stages):
             g = (
@@ -254,9 +254,17 @@ def stage_plot(frame, path, stages):
     finish(fig, path, height=5.3, top=0.86)
 
 
-def models(frame, path):
-    fig, axes = plt.subplots(1, 2)
-    for family, (color, marker) in STYLE.items():
+@plt.rc_context({"font.serif": ["Times New Roman", "DejaVu Serif"],
+                 "mathtext.fontset": "stix", "axes.linewidth": .7,
+                 "legend.fontsize": 8, "xtick.labelsize": 8,
+                 "ytick.labelsize": 8})
+def models(frame, path, height_cm=5.2):
+    fig, axes = plt.subplots(1, 2, figsize=(12.2 / 2.54, height_cm / 2.54))
+    styles = {"sequence": ("#2171b5", "o", "-"),
+              "choice": ("#8c2d26", "s", "--"),
+              "parallel": ("#005a32", "^", "-."),
+              "loop": ("#54278f", "D", ":")}
+    for family, (color, marker, linestyle) in styles.items():
         g = frame[frame.family == family].sort_values("activities")
         axes[0].plot(
             g.activities,
@@ -265,7 +273,9 @@ def models(frame, path):
             marker=marker,
             markersize=3,
             linewidth=0.9,
-            label=family,
+            linestyle=linestyle,
+            markerfacecolor="white",
+            label=family.capitalize(),
         )
         axes[1].errorbar(
             g.activities,
@@ -276,21 +286,39 @@ def models(frame, path):
             markersize=3,
             linewidth=0.9,
             capsize=2,
-            label=family,
+            linestyle=linestyle,
+            markerfacecolor="white",
+            elinewidth=.8,
+            capthick=.8,
+            label=family.capitalize(),
         )
-    axes[0].set_ylabel("Constraints (thousands)")
-    axes[1].set_ylabel("Proving time (s)")
-    for ax in axes:
-        ax.set_xlabel("Visible activities")
+    axes[0].set_ylabel(r"Constraints ($\times 10^3$)")
+    axes[1].set_ylabel("Proof time (s)")
+    for ax, panel in zip(axes, ("(a)", "(b)")):
+        ax.text(.04, 1.02, panel, transform=ax.transAxes,
+                ha="left", va="bottom", fontsize=9, clip_on=False)
+        ax.set_xticks([5, 10, 20, 30, 40, 50])
+        ax.set_xlim(2, 53)
+        ax.grid(True, linestyle="--", linewidth=.4, alpha=.35)
+        ax.set_axisbelow(True)
+        ax.spines[["top", "right"]].set_visible(False)
+    axes[0].set_ylim(165, 300)
+    axes[1].set_ylim(.34, .56)
+    axes[1].set_yticks([.35, .40, .45, .50, .55])
+    fig.supxlabel("Number of visible activities", fontsize=8.5,
+                  y=.03 * 5.2 / height_cm)
     fig.legend(
         *axes[0].get_legend_handles_labels(),
         loc="upper center",
         ncol=4,
         frameon=False,
-        columnspacing=0.9,
+        columnspacing=1.1,
         handlelength=1.4,
     )
-    finish(fig, path, height=4.8, top=0.85)
+    fig.subplots_adjust(left=.12, right=.99, bottom=.23 * 5.2 / height_cm,
+                        top=1 - .24 * 5.2 / height_cm, wspace=.42)
+    fig.savefig(path)
+    plt.close(fig)
 
 
 def capacity(frame, path):

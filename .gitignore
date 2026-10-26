@@ -37,9 +37,7 @@ private-*.json
 # Local paper-writing material and generated document exports.
 # Ignore rules do not remove files that Git already tracks.
 /paper/
-/Claude outputs/
-/docs/paper-system-overview/
-/docs/implementation-team-brief/
+/docs/
 /eval/results/evaluation_*.tex
 *.pdf
 *.zip
