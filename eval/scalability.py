@@ -113,7 +113,7 @@ def replay(cfg, case):
     assert m == cfg["final"] and events == case["events"] and cost == case["cost"]
 
 
-def experiment(folder, cfg, cases, repeat=3):
+def experiment(folder, cfg, cases, repeat=10):
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     if (folder / "config.json").exists():
@@ -146,7 +146,7 @@ def experiment(folder, cfg, cases, repeat=3):
     return records
 
 
-def models(root, sizes=(5, 10, 20, 30, 40, 50), repeat=3):
+def models(root, sizes=(5, 10, 20, 30, 40, 50), repeat=10):
     rows = []
     for family in ("sequence", "choice", "parallel", "loop"):
         for n in sizes:
@@ -175,7 +175,7 @@ def models(root, sizes=(5, 10, 20, 30, 40, 50), repeat=3):
             print("model", family, n, "complete", flush=True)
 
 
-def capacities(root, bounds=(32, 64, 128, 256, 384), repeat=3):
+def capacities(root, bounds=(32, 64, 128, 256, 384), repeat=10):
     source = Path(root) / "data/sepsis"
     cfg = json.loads((source / "config.json").read_text())
     cases = json.loads((source / "cases.json").read_text())
@@ -209,7 +209,7 @@ def capacities(root, bounds=(32, 64, 128, 256, 384), repeat=3):
         print("capacity", bound, "complete", flush=True)
 
 
-def repeats(root, repeat=5):
+def repeats(root, repeat=10):
     save(
         Path(root) / "results/performance_environment.json",
         {
@@ -317,7 +317,7 @@ def repeats(root, repeat=5):
         print("timing repeats", name, "complete", flush=True)
 
 
-def setup_repeats(root, repeat=5):
+def setup_repeats(root, repeat=10):
     rows = []
     for name in ("bpic13cp", "rtfm", "hospital", "sepsis"):
         cfg = json.loads((Path(root) / "data" / name / "config.json").read_text())
@@ -344,7 +344,7 @@ def setup_repeats(root, repeat=5):
         print("setup repeats", name, "complete", flush=True)
 
 
-def population(root, repeat=3):
+def population(root, repeat=10):
     rows = []
     for n in (100, 1000, 10000, 100000):
         for i in range(repeat):
@@ -435,20 +435,22 @@ if __name__ == "__main__":
         ],
         required=True,
     )
-    p.add_argument("--repeat", type=int)
+    p.add_argument("--repeat", type=int, default=10)
     p.add_argument("--sizes", type=int, nargs="+", default=[5, 10, 20, 30, 40, 50])
     a = p.parse_args()
+    if a.repeat < 2:
+        p.error("--repeat must be at least 2")
     if a.mode == "models":
-        models(a.root, a.sizes, a.repeat or 3)
+        models(a.root, a.sizes, a.repeat)
     elif a.mode == "capacity":
-        capacities(a.root, repeat=a.repeat or 3)
+        capacities(a.root, repeat=a.repeat)
     elif a.mode == "repeats":
-        repeats(a.root, a.repeat or 5)
+        repeats(a.root, a.repeat)
     elif a.mode == "population":
-        population(a.root, a.repeat or 3)
+        population(a.root, a.repeat)
     elif a.mode == "population-proofs":
         real_population(a.root)
     elif a.mode == "setup-repeats":
-        setup_repeats(a.root, a.repeat or 5)
+        setup_repeats(a.root, a.repeat)
     else:
         integrity_all(a.root)

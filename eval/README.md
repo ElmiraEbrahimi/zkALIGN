@@ -15,6 +15,10 @@ benchmarks, integrity checks, and reporting. Results are saved under
 
 ## Individual experiments
 
+Performance and scalability benchmarks default to ten repetitions. Existing
+saved results retain their original repetition counts; changing the defaults
+does not rerun experiments or alter previously recorded measurements.
+
 ```bash
 make eval-test
 make eval-core
@@ -29,11 +33,11 @@ witnesses separately:
 PYTHONPATH=src .venv/bin/python -m eval.above_threshold
 ```
 
-For the five-repeat alignment-capacity benchmark:
+For the ten-repeat alignment-capacity benchmark:
 
 ```bash
 go build -o build/zkalign-eval ./cmd/zkalign-eval
-PYTHONPATH=src .venv/bin/python -m eval.capacity_performance --repeat 5 --threads 14
+PYTHONPATH=src .venv/bin/python -m eval.capacity_performance --repeat 10 --threads 14
 ```
 
 For ten repetitions of all 24 synthetic models, after `make eval-scalability`:
@@ -46,11 +50,11 @@ Each ten-repeat run creates a separate directory under
 `outputs/scalability-ten/`. See [scalability_ten/README.md](scalability_ten/README.md)
 for plotting and output filenames.
 
-Optional five-repeat reruns of the real-log, capacity, and synthetic-model
+Optional ten-repeat reruns of the real-log, capacity, and synthetic-model
 performance experiments use independent output directories:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m eval.performance_rerun_v2 --repeat 5 --threads 14
+PYTHONPATH=src .venv/bin/python -m eval.performance_rerun_v2 --repeat 10 --threads 14
 ```
 
 ## Results

@@ -1,6 +1,6 @@
 """New, isolated performance suite. Existing code, measurements and CSVs are read-only.
 
-    PYTHONPATH=src .venv/bin/python -m eval.performance_rerun_v2 --repeat 5
+    PYTHONPATH=src .venv/bin/python -m eval.performance_rerun_v2 --repeat 10
 
 Each invocation creates a unique run directory. No resume/overwrite mode is
 provided. Successful repetitions, all receipts and partial CSVs survive failure.
@@ -217,7 +217,7 @@ def export(run, rows, repetitions, main_threads):
     write_csv(results / "plaintext_comparison.csv", comparison)
 
 
-def run_suite(source, output_parent, binary, *, repetitions=5, threads=(1,14),
+def run_suite(source, output_parent, binary, *, repetitions=10, threads=(1,14),
               experiments=("real","capacity","models"), seed=20261021, timeout=600):
     source, output_parent, binary = (Path(p).resolve() for p in (source, output_parent, binary))
     if repetitions<2 or not threads or min(threads)<1 or len(set(threads))!=len(threads):
@@ -349,7 +349,7 @@ def main():
     p.add_argument("--source",type=Path,default=ROOT/"outputs/evaluation")
     p.add_argument("--output-parent",type=Path,default=ROOT/"outputs/performance-reruns-v2")
     p.add_argument("--binary",type=Path,default=ROOT/"build/zkalign-eval")
-    p.add_argument("--repeat",type=int,default=5)
+    p.add_argument("--repeat",type=int,default=10)
     p.add_argument("--threads",type=int,nargs="+",default=sorted({1,os.cpu_count() or 1}))
     p.add_argument("--experiments",nargs="+",choices=["real","capacity","models"],default=["real","capacity","models"])
     p.add_argument("--seed",type=int,default=20261021)

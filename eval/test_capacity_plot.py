@@ -20,6 +20,15 @@ class CapacityPlotTests(unittest.TestCase):
     def test_complete_run(self):
         validate(self.runs, self.summary)
 
+    def test_ten_repetitions_and_incomplete_ten_rejected(self):
+        extra = self.runs.copy()
+        extra["repeat"] += 5
+        runs = pd.concat([self.runs, extra], ignore_index=True)
+        summary = pd.DataFrame(summarize(runs.to_dict("records"), 10))
+        validate(runs, summary)
+        with self.assertRaises(ValueError):
+            validate(runs.iloc[:-1], summary)
+
     def test_missing_and_duplicate_runs_rejected(self):
         for rows in (self.runs.iloc[:-1], pd.concat([self.runs, self.runs.iloc[:1]])):
             with self.assertRaises(ValueError):

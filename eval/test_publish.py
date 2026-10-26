@@ -125,7 +125,7 @@ class PublicationTests(unittest.TestCase):
             self.assertEqual(provenance["solver_only_thresholds"], [0])
             self.assertTrue((destination / "audit-reports/sepsis-k2.json").exists())
 
-    def fixture(self, root):
+    def fixture(self, root, repetitions=None):
         out = root / "results"
         csv_write(
             out / "repeated_timings.csv",
@@ -134,7 +134,7 @@ class PublicationTests(unittest.TestCase):
                 for d in DATASETS
                 for t in ("1", "default")
                 for s in ("witness", "prove", "verify")
-                for r in range(5)
+                for r in range(repetitions or 5)
             ],
         )
         csv_write(
@@ -143,7 +143,7 @@ class PublicationTests(unittest.TestCase):
                 dict(dataset=d, stage=s, repeat=r, status="ok")
                 for d in DATASETS
                 for s in ("compile", "setup")
-                for r in range(5)
+                for r in range(repetitions or 5)
             ],
         )
         csv_write(
@@ -153,7 +153,7 @@ class PublicationTests(unittest.TestCase):
                 for f in ("sequence", "choice", "parallel", "loop")
                 for n in (5, 10, 20, 30, 40, 50)
                 for s in ("witness", "prove", "verify")
-                for r in range(3)
+                for r in range(repetitions or 3)
             ],
         )
         csv_write(
@@ -162,7 +162,7 @@ class PublicationTests(unittest.TestCase):
                 dict(alignment_capacity=n, stage=s, repeat=r, status="ok")
                 for n in (32, 64, 128, 256, 384)
                 for s in ("witness", "prove", "verify")
-                for r in range(3)
+                for r in range(repetitions or 3)
             ],
         )
         csv_write(
@@ -170,7 +170,7 @@ class PublicationTests(unittest.TestCase):
             [
                 dict(N=n, repeat=r, status="ok")
                 for n in (100, 1000, 10000, 100000)
-                for r in range(3)
+                for r in range(repetitions or 3)
             ],
         )
         csv_write(
@@ -204,5 +204,16 @@ class PublicationTests(unittest.TestCase):
                 root / "results/repeated_setup.csv",
                 [dict(dataset="sepsis", stage="setup", repeat=0, status="ok")],
             )
+            with self.assertRaises(ValueError):
+                check_experiments(root)
+
+    def test_ten_repetitions_pass_and_missing_last_repeat_fails(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self.fixture(root, repetitions=10)
+            check_experiments(root)
+            path = root / "results/scal_model.csv"
+            import pandas as pd
+            pd.read_csv(path).iloc[:-1].to_csv(path, index=False)
             with self.assertRaises(ValueError):
                 check_experiments(root)

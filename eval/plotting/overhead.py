@@ -17,10 +17,13 @@ def validate(pairs, timings, summary):
     if set(map(tuple, pairs[keys].to_numpy())) != set(map(tuple, timings[keys].to_numpy())):
         raise ValueError("Unmatched paired observations")
     counts = pairs.groupby(["dataset", "index"]).size()
-    if not counts.eq(5).all() or counts.groupby(level=0).size().to_dict() != {
+    if counts.nunique() != 1 or not counts.isin([5, 10]).all() or counts.groupby(level=0).size().to_dict() != {
         "bpic13cp": 3, "hospital": 3, "rtfm": 3, "sepsis": 4,
     }:
-        raise ValueError("Expected five paired repeats for the 13 selected cases")
+        raise ValueError("Expected five or ten paired repeats for all 13 selected cases")
+    for _, group in pairs.groupby(["dataset", "index"]):
+        if sorted(group["repeat"]) != list(range(len(group))):
+            raise ValueError("Missing or duplicate repetition indices")
     if summary.duplicated(["dataset", "index"]).any() or len(summary) != 13:
         raise ValueError("Invalid selected-case summary")
     indexed = pairs.set_index(keys)
@@ -39,7 +42,7 @@ def validate(pairs, timings, summary):
     indexed_summary = summary.set_index(["dataset", "index"])
     for key, g in pairs.groupby(["dataset", "index"]):
         row = indexed_summary.loc[key]
-        if row["n"] != 5:
+        if row["n"] != len(g):
             raise ValueError("Incorrect repetition count")
         for metric in ("plaintext_alignment_seconds", "prover_operation_seconds", "operation_overhead"):
             if not np.allclose([row[metric+"_mean"], row[metric+"_sd"]],
@@ -62,13 +65,13 @@ def generate(results, data, figures):
     frame["K"] = 1
     frame["time_scope"] = "operation only; excludes startup, key loading, output, setup and verification"
     frame["ratio_definition"] = "(alignment + input-witness encoding + proving) / alignment"
-    frame["error_bar"] = "sample SD of five per-repeat ratios"
+    frame["error_bar"] = "sample SD of per-repeat ratios"
     data.mkdir(parents=True, exist_ok=True)
     figures.mkdir(parents=True, exist_ok=True)
     csv = data / "fig_overhead.csv"
     frame.to_csv(csv, index=False)
     overhead(pd.read_csv(csv), figures / "fig_overhead.pdf")
-    print("Validated 65 paired repeats across 13 selected cases; overhead PDF and CSV saved.")
+    print(f"Validated {len(pairs)} paired repeats across 13 selected cases; overhead PDF and CSV saved.")
 
 
 if __name__ == "__main__":

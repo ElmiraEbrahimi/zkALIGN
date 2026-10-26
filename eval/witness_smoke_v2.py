@@ -22,10 +22,10 @@ def main():
     specs = make_specs(source, ("capacity",))
     hashes = {str(source / "data/sepsis" / name): digest(source / "data/sepsis" / name)
               for name in ("config.json", "cases.json")}
-    jobs = schedule(specs, 5, 20261021)
+    jobs = schedule(specs, 10, 20261021)
     write_json(run / "manifest.json", dict(
         purpose="Witness-only smoke test, not a full performance rerun",
-        repetitions=5, threads=14, schedule=jobs, source_hashes=hashes,
+        repetitions=10, threads=14, schedule=jobs, source_hashes=hashes,
         binary_sha256=digest(binary), measurement_method="blocking_wait4_v2",
         note="Prepare once per capacity; no excluded warmup or forced cache flushing."
     ))

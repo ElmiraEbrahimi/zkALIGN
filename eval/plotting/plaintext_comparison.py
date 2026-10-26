@@ -44,14 +44,14 @@ def generate(results, data, figures):
                 source_timings=str(results / "repeated_timings.csv"),
             ))
     frame = pd.DataFrame(rows)
-    if len(frame) != 24 or not frame.repetitions.eq(5).all():
-        raise ValueError("Expected two methods for 12 cases, each with five repetitions")
+    if len(frame) != 24 or frame.repetitions.nunique() != 1 or not frame.repetitions.isin([5, 10]).all():
+        raise ValueError("Expected two methods for 12 cases, each with five or ten repetitions")
     data.mkdir(parents=True, exist_ok=True)
     figures.mkdir(parents=True, exist_ok=True)
     csv = data / "fig_plaintext_comparison.csv"
     frame.to_csv(csv, index=False)
     draw(pd.read_csv(csv), figures / "fig_plaintext_comparison.pdf")
-    print(f"Validated all 65 paired repeats; plotted 60 repeats across 12 cases. Saved {csv} and comparison PDF.")
+    print(f"Validated {len(pairs)} paired repeats; plotted {int(frame.repetitions.sum() // 2)} repeats across 12 cases. Saved {csv} and comparison PDF.")
 
 
 def draw(frame, path, height_cm=5.2):

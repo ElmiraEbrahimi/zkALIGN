@@ -24,8 +24,9 @@ def generate(results=Path("eval/results"), output=Path("eval/plotting/data/tab_p
                 return matching[0]
             memory = statistic("process_peak_rss_bytes")
             time = statistic("operation_seconds")
-            expected = 5 if stage in ("compile", "setup") else 20 if dataset == "sepsis" else 15
-            if int(memory["n"]) != expected or int(time["n"]) != expected:
+            cases = 1 if stage in ("compile", "setup") else 4 if dataset == "sepsis" else 3
+            expected = int(memory["n"])
+            if expected not in (cases * 5, cases * 10) or int(time["n"]) != expected:
                 raise ValueError("Unexpected measurement count")
             artifact = artifacts[dataset]
             for kind in ("pk", "vk", "proof"):
@@ -41,7 +42,7 @@ def generate(results=Path("eval/results"), output=Path("eval/plotting/data/tab_p
                 artifact_source=str(results/"artifact_sizes.csv"),
                 memory_scope="whole-process OS peak RSS; MB = 1000000 bytes",
                 time_scope="operation only; excludes startup, artifact loading and serialization",
-                aggregation="five setup repeats" if stage in ("compile", "setup") else "pooled selected cases, five repeats per case",
+                aggregation=f"{expected} setup repeats" if stage in ("compile", "setup") else f"pooled selected cases, {expected // cases} repeats per case",
             ))
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open("w", newline="") as stream:

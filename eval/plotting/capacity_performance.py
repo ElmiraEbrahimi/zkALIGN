@@ -23,9 +23,13 @@ SERIES = (
 
 def validate(runs, summary):
     keys = ["alignment_capacity", "stage", "repeat"]
-    expected = {(b, s, r) for b in BOUNDS for s in STAGES for r in range(1, 6)}
+    counts = set(summary.n_repetitions)
+    if len(counts) != 1 or not counts <= {5, 10}:
+        raise ValueError("Expected five or ten repetitions consistently")
+    count = int(next(iter(counts)))
+    expected = {(b, s, r) for b in BOUNDS for s in STAGES for r in range(1, count + 1)}
     if runs.duplicated(keys).any() or set(map(tuple, runs[keys].to_numpy())) != expected:
-        raise ValueError("Expected five distinct repetitions of all five stages at each capacity")
+        raise ValueError("Expected complete distinct repetitions of all five stages at each capacity")
     if not runs.status.eq("ok").all():
         raise ValueError("A benchmark stage failed")
     for key, value in (("dataset", "sepsis"), ("case_id", "AG"), ("K", 1),
@@ -44,7 +48,7 @@ def validate(runs, summary):
     expected_summary = {(b, s) for b in BOUNDS for s in STAGES}
     if summary.duplicated(keys[:2]).any() or set(map(tuple, summary[keys[:2]].to_numpy())) != expected_summary:
         raise ValueError("Incomplete or duplicate summary")
-    if not summary.n_repetitions.eq(5).all() or not summary.complete.eq(True).all():
+    if not summary.n_repetitions.eq(count).all() or not summary.complete.eq(True).all():
         raise ValueError("Summary is not complete")
     indexed = summary.set_index(keys[:2])
     for key, group in runs.groupby(keys[:2]):

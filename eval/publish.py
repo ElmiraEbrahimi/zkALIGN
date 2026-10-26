@@ -53,12 +53,20 @@ def check_experiments(root):
             raise ValueError(f"unsuccessful measurements: {name}")
         return frame
 
+    def repetitions(frame, keys, legacy):
+        groups = list(frame.groupby(keys))
+        counts = {len(g) for _, g in groups}
+        if len(counts) != 1 or not counts <= {legacy, 10}:
+            raise ValueError("incomplete or inconsistent repetition groups")
+        count = counts.pop()
+        if any(sorted(g["repeat"]) != list(range(count)) for _, g in groups):
+            raise ValueError("missing or duplicate repetition indices")
+        return count
+
     timings = read("repeated_timings.csv")
     if set(timings.dataset) != set(DATASETS):
         raise ValueError("missing dataset timings")
-    for _, group in timings.groupby(["dataset", "threads", "index", "stage"]):
-        if sorted(group["repeat"]) != list(range(5)):
-            raise ValueError("incomplete five-repeat timing group")
+    repetitions(timings, ["dataset", "threads", "index", "stage"], 5)
     for name, group in timings.groupby("dataset"):
         if set(group.threads.astype(str)) != {"1", "default"}:
             raise ValueError(f"missing thread setting: {name}")
@@ -66,22 +74,24 @@ def check_experiments(root):
             if not {"witness", "prove", "verify"} <= set(g.stage):
                 raise ValueError("missing measured stage")
     setup = read("repeated_setup.csv")
-    if len(setup) != 40 or set(setup.dataset) != set(DATASETS):
+    setup_count = repetitions(setup, ["dataset", "stage"], 5)
+    if len(setup) != 8 * setup_count or set(setup.dataset) != set(DATASETS) or set(setup.stage) != {"compile", "setup"}:
         raise ValueError("incomplete repeated setup")
-    for _, group in setup.groupby(["dataset", "stage"]):
-        if sorted(group["repeat"]) != list(range(5)):
-            raise ValueError("incomplete setup repetitions")
     models = read("scal_model.csv")
-    if len(models.groupby(["family", "activities"])) != 24 or len(models) != 216:
+    model_count = repetitions(models, ["family", "activities", "stage"], 3)
+    if len(models.groupby(["family", "activities"])) != 24 or len(models) != 72 * model_count or set(models.stage) != {"witness", "prove", "verify"}:
         raise ValueError("incomplete controlled-model study")
     capacity = read("scal_capacity.csv")
+    capacity_count = repetitions(capacity, ["alignment_capacity", "stage"], 3)
     if (
         set(capacity.alignment_capacity) != {32, 64, 128, 256, 384}
-        or len(capacity) != 45
+        or len(capacity) != 15 * capacity_count
+        or set(capacity.stage) != {"witness", "prove", "verify"}
     ):
         raise ValueError("incomplete capacity study")
     roster = read("scal_population.csv")
-    if set(roster.N) != {100, 1000, 10000, 100000} or len(roster) != 12:
+    roster_count = repetitions(roster, ["N"], 3)
+    if set(roster.N) != {100, 1000, 10000, 100000} or len(roster) != 4 * roster_count:
         raise ValueError("incomplete root-reconstruction study")
     proofs = read("scal_population_proofs.csv")
     if (

@@ -42,7 +42,7 @@ def summarize(rows, repetitions):
 
 
 def benchmark(source, output, binary=BINARY, bounds=(32, 64, 128, 256, 384),
-              repetitions=5, threads=None):
+              repetitions=10, threads=None):
     source, output, binary = Path(source), Path(output), Path(binary)
     if repetitions < 2 or not bounds or len(set(bounds)) != len(bounds):
         raise ValueError("Use at least two repeats and distinct capacity bounds")
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     parser.add_argument("--source", type=Path, default=ROOT / "outputs/evaluation/data/sepsis")
     parser.add_argument("--output", type=Path, default=ROOT / "outputs/evaluation/capacity-performance")
     parser.add_argument("--binary", type=Path, default=BINARY)
-    parser.add_argument("--repeat", type=int, default=5)
+    parser.add_argument("--repeat", type=int, default=10)
     parser.add_argument("--threads", type=int, default=os.cpu_count() or 1)
     parser.add_argument("--bounds", type=int, nargs="+", default=[32, 64, 128, 256, 384])
     args = parser.parse_args()

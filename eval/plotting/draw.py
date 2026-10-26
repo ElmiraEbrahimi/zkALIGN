@@ -192,7 +192,7 @@ def overhead(frame, path):
                 color=blue,
                 marker="o",
                 linestyle="none",
-                label="Case mean +/- SD (5 repeats)",
+                label="Case mean +/- SD",
             ),
             Line2D([], [], color=red, linestyle="--", label="Median of case means"),
         ],
