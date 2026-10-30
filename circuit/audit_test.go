@@ -3,7 +3,7 @@ package circuit
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/hashing"
 	"math/big"
 	"os"
 	"path/filepath"

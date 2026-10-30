@@ -8,7 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/hashing"
 	"io"
 	"math/big"
 	"os"

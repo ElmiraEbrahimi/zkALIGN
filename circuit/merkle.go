@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"os"
 
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/hashing"
 )
 
 type privateTraceRecord struct {

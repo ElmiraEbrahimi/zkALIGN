@@ -3,7 +3,7 @@ package circuit
 import (
 	"math/big"
 
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/hashing"
 )
 
 // ComputeTraceCommitment mirrors the field-element sequence hashed in Define.

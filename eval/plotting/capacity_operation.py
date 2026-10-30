@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from .capacity_performance import BOUNDS, SERIES, validate
+from .capacity_performance import BOUNDS, SERIES, source_label, validate
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -54,7 +54,7 @@ def load_data(source):
     frame["memory_scope"] = "whole-process OS peak RSS; includes runtime and loaded inputs"
     frame["memory_unit"] = "MB (1000000 bytes)"
     frame["error_bar"] = "sample standard deviation"
-    frame["source_runs"] = str(source / "capacity_performance_runs.csv")
+    frame["source_runs"] = source_label(source / "capacity_performance_runs.csv")
     return frame
 
 

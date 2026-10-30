@@ -21,6 +21,16 @@ SERIES = (
 )
 
 
+def source_label(path):
+    """Keep exported provenance portable without including local parent folders."""
+    path = Path(path).resolve()
+    root = Path(__file__).resolve().parents[2]
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.name
+
+
 def validate(runs, summary):
     keys = ["alignment_capacity", "stage", "repeat"]
     counts = set(summary.n_repetitions)
@@ -136,8 +146,8 @@ def generate(source, data, figures, reports):
         if measurement["process_peak_rss_bytes"] != row.process_peak_rss_bytes:
             raise ValueError(f"Measurement memory mismatch: {row.measurement_file}")
     reported = elapsed_summary(runs, summary)
-    reported["source_summary"] = str(source / "capacity_performance_summary.csv")
-    reported["source_runs"] = str(source / "capacity_performance_runs.csv")
+    reported["source_summary"] = source_label(source / "capacity_performance_summary.csv")
+    reported["source_runs"] = source_label(source / "capacity_performance_runs.csv")
     reported["error_bar"] = "sample_standard_deviation"
     reported["memory_unit"] = "MB (1000000 bytes)"
     frame = reported[reported.stage != "verify"].copy()

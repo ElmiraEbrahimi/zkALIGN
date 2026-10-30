@@ -1,4 +1,4 @@
-module github.com/ElmiraEbrahimi/zkALIGN
+module example.org/zkalign
 
 go 1.25.7
 

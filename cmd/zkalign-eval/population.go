@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/ElmiraEbrahimi/zkALIGN/circuit"
+	"example.org/zkalign/circuit"
 	"strconv"
 	"strings"
 )

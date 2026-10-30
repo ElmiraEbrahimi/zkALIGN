@@ -7,7 +7,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/hashing"
 	"io"
 	"log"
 	"math/big"
@@ -15,7 +15,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ElmiraEbrahimi/zkALIGN/circuit"
+	"example.org/zkalign/circuit"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"

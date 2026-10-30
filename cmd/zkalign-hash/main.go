@@ -8,8 +8,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/ElmiraEbrahimi/zkALIGN/circuit"
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/circuit"
+	"example.org/zkalign/hashing"
 	"github.com/consensys/gnark-crypto/ecc/bn254/fr/mimc"
 )
 

@@ -14,9 +14,10 @@ with gnark for Groth16 proof generation and verification.
 Requirements: Python 3.11 or later, Go 1.25.7 or later, Git, Make, and curl.
 The optional Sepsis demonstration also requires Graphviz.
 
+Download and extract the repository ZIP, then open a terminal in the extracted
+project directory.
+
 ```bash
-git clone https://github.com/ElmiraEbrahimi/zkALIGN.git
-cd zkALIGN
 python3 -m venv .venv
 .venv/bin/python -m pip install '.[evaluation]'
 go mod download

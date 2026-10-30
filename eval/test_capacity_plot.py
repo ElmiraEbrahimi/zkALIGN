@@ -1,12 +1,19 @@
 import unittest
+from pathlib import Path
 
 import pandas as pd
 
 from eval.capacity_performance import summarize
-from eval.plotting.capacity_performance import BOUNDS, STAGES, validate, elapsed_summary
+from eval.plotting.capacity_performance import BOUNDS, STAGES, validate, elapsed_summary, source_label
 
 
 class CapacityPlotTests(unittest.TestCase):
+    def test_source_labels_are_portable(self):
+        root = Path(__file__).resolve().parents[1]
+        relative = Path("outputs/evaluation/capacity-performance/results/runs.csv")
+        self.assertEqual(source_label(root / relative), relative.as_posix())
+        self.assertEqual(source_label(root.parent / "external-results/runs.csv"), "runs.csv")
+
     def setUp(self):
         rows = [dict(dataset="sepsis", case_id="AG", K=1, trace_capacity=185,
                      trace_length=5, alignment_length=18, threads=14, gomaxprocs=14,

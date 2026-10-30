@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/ElmiraEbrahimi/zkALIGN/circuit"
-	"github.com/ElmiraEbrahimi/zkALIGN/hashing"
+	"example.org/zkalign/circuit"
+	"example.org/zkalign/hashing"
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark/backend/groth16"
 	"github.com/consensys/gnark/frontend"
